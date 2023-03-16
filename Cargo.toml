@@ -5,8 +5,13 @@ edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 [lib]
-name = "typeset_py"
+name = "typeset"
 crate-type = ["cdylib"]
 
 [dependencies]
-pyo3 = "0.18.1"
+lazy_static = "1"
+pest = "2"
+pest_derive = "2"
+pyo3 = "0"
+pyo3-log = "0"
+typeset = { path = "../typeset-rs" }
