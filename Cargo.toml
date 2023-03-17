@@ -11,4 +11,4 @@ crate-type = ["cdylib"]
 [dependencies]
 pyo3 = "0"
 pyo3-log = "0"
-typeset = { path = "../typeset-rs" }
+typeset = "1"
