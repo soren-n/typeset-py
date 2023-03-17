@@ -1,7 +1,16 @@
 [package]
 name = "typeset-py"
-version = "1.0.0"
+description = "A DSL for defining source code pretty printers"
+version = "1.0.1"
 edition = "2021"
+authors = ["Soren Norbaek <sorennorbaek@gmail.com>"]
+homepage = "https://docs.rs/typeset/latest/typeset/"
+repository = "https://github.com/soren-n/typeset-py"
+documentation = "https://docs.rs/typeset/latest/typeset/"
+keywords = ["dsl", "pretty", "printer"]
+categories = ["compilers", "template-engine"]
+license-file = "LICENSE"
+readme = "README.md"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 [lib]
