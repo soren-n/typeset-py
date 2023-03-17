@@ -290,7 +290,7 @@ The reason for splitting the solver into `compile` and `render`, is in case the 
 Additionally a small DSL has been defined, and a parser implemented, which allow you to write your layouts more succinctly (versus spelling out the full layout tree with the given constructors, which we've so far been doing throughout in this introduction!):
 ```Python
 ...
-layout = parse!('{0} </> null </> {1}', fragment1, fragment2)
+layout = parse('{0} </> null </> {1}', fragment1, fragment2)
 ...
 ```
 
