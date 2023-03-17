@@ -12,10 +12,24 @@ struct Layout {
   native: Box<native::Layout>
 }
 
+#[pymethods]
+impl Layout {
+  fn __repr__(&self) -> String {
+    format!("{}", self.native)
+  }
+}
+
 #[pyclass]
 #[derive(Debug, Clone)]
 struct Document {
   native: Box<native::Doc>
+}
+
+#[pymethods]
+impl Document {
+  fn __repr__(&self) -> String {
+    format!("{}", self.native)
+  }
 }
 
 #[pyfunction]
@@ -81,12 +95,14 @@ fn render(doc: Document, tab: usize, width: usize) -> PyResult<String> {
 #[pyfunction]
 #[pyo3(signature = (input, *args))]
 fn parse(input: String, args: &PyTuple) -> PyResult<Layout> {
+  let _args: Result<Vec<Box<native::Layout>>, PyErr> =
+    args.iter().map(|layout: &PyAny| -> Result<Box<native::Layout>, PyErr> {
+      Ok(layout.extract::<Layout>()?.native)
+    }).collect();
   Ok(Layout {
     native: native::_parse(
       input.as_str(),
-      &args.iter().map(|layout: &PyAny| {
-        layout.extract::<Layout>().unwrap().native
-      }).collect()
+      &_args?
     ).map_err(exceptions::PyValueError::new_err)?
   })
 }
