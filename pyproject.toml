@@ -3,14 +3,28 @@ requires = ["maturin>=0.14,<0.15"]
 build-backend = "maturin"
 
 [project]
-name = "typeset"
+name = "typeset-soren-n"
+description = "A DSL for defining source code pretty printers"
+readme = "README.md"
+license = { file = "LICENSE" }
+authors = [
+  {name = "Soren Norbaek", email = "sorennorbaek@gmail.com"}
+]
+maintainers = [
+  {name = "Soren Norbaek", email = "sorennorbaek@gmail.com"}
+]
 requires-python = ">=3.7"
+keywords = ["dsl", "pretty", "printer"]
 classifiers = [
     "Programming Language :: Rust",
     "Programming Language :: Python :: Implementation :: CPython",
     "Programming Language :: Python :: Implementation :: PyPy",
 ]
 
+[project.urls]
+homepage = "https://github.com/soren-n/typeset-py"
+repository = "https://github.com/soren-n/typeset-py"
+documentation = "https://github.com/soren-n/typeset-py"
 
 [tool.maturin]
 features = ["pyo3/extension-module"]

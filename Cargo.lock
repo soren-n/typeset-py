@@ -365,9 +365,9 @@ checksum = "497961ef93d974e23eb6f433eb5fe1b7930b659f06d12dec6fc44a8f554c0bba"
 
 [[package]]
 name = "typeset"
-version = "1.0.0"
+version = "1.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c01ebcc15ceab7bc5c6c875a46cb7ee0443e2ada680b22d00a98f3137a2dfb09"
+checksum = "6465fed73b526cb9b0c0ae1fa03d51d2d23c9dd2d660f5c672520f2941649d26"
 dependencies = [
  "bumpalo",
  "lazy_static",
