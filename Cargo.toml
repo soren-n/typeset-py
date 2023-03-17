@@ -9,9 +9,6 @@ name = "typeset"
 crate-type = ["cdylib"]
 
 [dependencies]
-lazy_static = "1"
-pest = "2"
-pest_derive = "2"
 pyo3 = "0"
 pyo3-log = "0"
 typeset = { path = "../typeset-rs" }

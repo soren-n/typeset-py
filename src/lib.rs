@@ -4,11 +4,6 @@ use pyo3::prelude::*;
 use pyo3::exceptions;
 use pyo3::types::PyTuple;
 
-use pest::Parser;
-use pest_derive::Parser;
-use pest::iterators::Pairs;
-use pest::pratt_parser::PrattParser;
-
 use ::typeset::{self as native};
 
 #[pyclass]
@@ -70,7 +65,7 @@ fn comp(left: Layout, right: Layout, pad: bool, fix: bool) -> PyResult<Layout> {
 
 #[pyfunction]
 fn print(doc: Document) -> PyResult<String> {
-  Ok(native::print(doc.native))
+  Ok(format!("{}", doc.native))
 }
 
 #[pyfunction]
@@ -83,173 +78,17 @@ fn render(doc: Document, tab: usize, width: usize) -> PyResult<String> {
   Ok(native::render(doc.native, tab, width))
 }
 
-#[derive(Parser)]
-#[grammar = "layout.pest"]
-pub struct LayoutParser;
-
-lazy_static::lazy_static! {
-  static ref PRATT_PARSER: PrattParser<Rule> = {
-    use pest::pratt_parser::{Assoc::*, Op};
-    PrattParser::new()
-      .op(
-        Op::infix(Rule::single_line_op, Right) |
-        Op::infix(Rule::double_line_op, Right) |
-        Op::infix(Rule::unpad_comp_op, Right) |
-        Op::infix(Rule::pad_comp_op, Right) |
-        Op::infix(Rule::fix_unpad_comp_op, Right) |
-        Op::infix(Rule::fix_pad_comp_op, Right)
-      )
-      .op(
-        Op::prefix(Rule::fix_op) |
-        Op::prefix(Rule::grp_op) |
-        Op::prefix(Rule::seq_op) |
-        Op::prefix(Rule::nest_op) |
-        Op::prefix(Rule::pack_op)
-      )
-  };
-}
-
-#[derive(Debug)]
-enum Syntax {
-  Index(usize),
-  Text(String),
-  Fix(Box<Syntax>),
-  Grp(Box<Syntax>),
-  Seq(Box<Syntax>),
-  Nest(Box<Syntax>),
-  Pack(Box<Syntax>),
-  SingleLine(Box<Syntax>, Box<Syntax>),
-  DoubleLine(Box<Syntax>, Box<Syntax>),
-  UnpadComp(Box<Syntax>, Box<Syntax>),
-  PadComp(Box<Syntax>, Box<Syntax>),
-  FixUnpadComp(Box<Syntax>, Box<Syntax>),
-  FixPadComp(Box<Syntax>, Box<Syntax>)
-}
-
-fn _parse_syntax(tokens: Pairs<Rule>) -> Result<Box<Syntax>, String> {
-  PRATT_PARSER
-    .map_primary(|primary| match primary.as_rule() {
-      Rule::index =>
-        Ok(Box::new(Syntax::Index(primary.as_str().parse::<usize>().unwrap()))),
-      Rule::text =>
-        Ok(Box::new(Syntax::Text(primary.as_str().to_string()))),
-      Rule::expr =>
-        _parse_syntax(primary.into_inner()),
-      rule =>
-        Err(format!("expected atom, found {:?}", rule))
-    })
-    .map_infix(|left, op, right| match op.as_rule() {
-      Rule::single_line_op =>
-        Ok(Box::new(Syntax::SingleLine(left?, right?))),
-      Rule::double_line_op =>
-        Ok(Box::new(Syntax::DoubleLine(left?, right?))),
-      Rule::unpad_comp_op =>
-        Ok(Box::new(Syntax::UnpadComp(left?, right?))),
-      Rule::pad_comp_op =>
-        Ok(Box::new(Syntax::PadComp(left?, right?))),
-      Rule::fix_unpad_comp_op =>
-        Ok(Box::new(Syntax::FixUnpadComp(left?, right?))),
-      Rule::fix_pad_comp_op =>
-        Ok(Box::new(Syntax::FixPadComp(left?, right?))),
-      rule =>
-        Err(format!("expected binary operator, found {:?}", rule))
-    })
-    .map_prefix(|op, syntax| match op.as_rule() {
-      Rule::fix_op => Ok(Box::new(Syntax::Fix(syntax?))),
-      Rule::grp_op => Ok(Box::new(Syntax::Grp(syntax?))),
-      Rule::seq_op => Ok(Box::new(Syntax::Seq(syntax?))),
-      Rule::nest_op => Ok(Box::new(Syntax::Nest(syntax?))),
-      Rule::pack_op => Ok(Box::new(Syntax::Pack(syntax?))),
-      rule =>
-        Err(format!("expected unary operator, found {:?}", rule))
-    })
-    .parse(tokens)
-}
-
-fn _interp_syntax(
-  syntax: Box<Syntax>,
-  args: &Vec<Box<native::Layout>>
-) -> Result<Box<native::Layout>, String> {
-  match syntax {
-    box Syntax::Index(index) => {
-      let length = args.len();
-      if index < length { Ok(args[index].clone()) } else {
-      Err(format!("invalid index {:?}", index)) }
-    }
-    box Syntax::Text(data) =>
-      Ok(native::text(data)),
-    box Syntax::Fix(syntax1) => {
-      let layout = _interp_syntax(syntax1, args);
-      Ok(native::fix(layout?))
-    }
-    box Syntax::Grp(syntax1) => {
-      let layout = _interp_syntax(syntax1, args);
-      Ok(native::grp(layout?))
-    }
-    box Syntax::Seq(syntax1) => {
-      let layout = _interp_syntax(syntax1, args);
-      Ok(native::seq(layout?))
-    }
-    box Syntax::Nest(syntax1) => {
-      let layout = _interp_syntax(syntax1, args);
-      Ok(native::nest(layout?))
-    }
-    box Syntax::Pack(syntax1) => {
-      let layout = _interp_syntax(syntax1, args);
-      Ok(native::pack(layout?))
-    }
-    box Syntax::SingleLine(left, right) => {
-      let left1 = _interp_syntax(left, args);
-      let right1 = _interp_syntax(right, args);
-      Ok(native::line(left1?, right1?))
-    }
-    box Syntax::DoubleLine(left, right) => {
-      let left1 = _interp_syntax(left, args);
-      let right1 = _interp_syntax(right, args);
-      Ok(native::line(left1?, native::line(native::null(), right1?)))
-    }
-    box Syntax::UnpadComp(left, right) => {
-      let left1 = _interp_syntax(left, args);
-      let right1 = _interp_syntax(right, args);
-      Ok(native::comp(left1?, right1?, false, false))
-    }
-    box Syntax::PadComp(left, right) => {
-      let left1 = _interp_syntax(left, args);
-      let right1 = _interp_syntax(right, args);
-      Ok(native::comp(left1?, right1?, true, false))
-    }
-    box Syntax::FixUnpadComp(left, right) => {
-      let left1 = _interp_syntax(left, args);
-      let right1 = _interp_syntax(right, args);
-      Ok(native::comp(left1?, right1?, false, true))
-    }
-    box Syntax::FixPadComp(left, right) => {
-      let left1 = _interp_syntax(left, args);
-      let right1 = _interp_syntax(right, args);
-      Ok(native::comp(left1?, right1?, true, true))
-    }
-  }
-}
-
 #[pyfunction]
 #[pyo3(signature = (input, *args))]
 fn parse(input: String, args: &PyTuple) -> PyResult<Layout> {
-  match LayoutParser::parse(Rule::layout, &input) {
-    Ok(mut tokens) =>
-      Ok(Layout {
-        native: _interp_syntax(
-          _parse_syntax(tokens.next().unwrap().into_inner())
-            .map_err(exceptions::PyValueError::new_err)?,
-          &args.iter().map(|layout: &PyAny| {
-            layout.extract::<Layout>().unwrap().native
-          }).collect()
-        ).map_err(exceptions::PyValueError::new_err)?
-      }),
-    Err(error) => {
-      let message = format!("{}", error);
-      Err(exceptions::PyValueError::new_err(message))
-    }
-  }
+  Ok(Layout {
+    native: native::_parse(
+      input.as_str(),
+      &args.iter().map(|layout: &PyAny| {
+        layout.extract::<Layout>().unwrap().native
+      }).collect()
+    ).map_err(exceptions::PyValueError::new_err)?
+  })
 }
 
 #[pymodule]

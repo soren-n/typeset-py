@@ -368,15 +368,15 @@ name = "typeset"
 version = "0.1.0"
 dependencies = [
  "bumpalo",
+ "lazy_static",
+ "pest",
+ "pest_derive",
 ]
 
 [[package]]
 name = "typeset-py"
 version = "0.1.0"
 dependencies = [
- "lazy_static",
- "pest",
- "pest_derive",
  "pyo3",
  "pyo3-log",
  "typeset",
