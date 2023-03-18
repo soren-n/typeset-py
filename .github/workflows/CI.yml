@@ -106,7 +106,7 @@ jobs:
   release:
     name: Release
     if: >-
-      github.repository == 'soren-n/typeset-rs' &&
+      github.repository == 'soren-n/typeset-py' &&
       github.event_name == 'push' &&
       startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
