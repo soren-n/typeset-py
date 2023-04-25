@@ -20,4 +20,4 @@ crate-type = ["cdylib"]
 [dependencies]
 pyo3 = "0.18.3"
 pyo3-log = "0.8.1"
-typeset = "1.0.5"
+typeset = "2.0.0"
