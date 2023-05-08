@@ -1,7 +1,7 @@
 [package]
 name = "typeset-py"
 description = "A DSL for defining source code pretty printers"
-version = "1.0.7"
+version = "2.0.0"
 edition = "2021"
 authors = ["Soren Norbaek <sorennorbaek@gmail.com>"]
 homepage = "https://docs.rs/typeset/latest/typeset/"
@@ -18,6 +18,9 @@ name = "typeset"
 crate-type = ["cdylib"]
 
 [dependencies]
+lazy_static = "1.4.0"
+pest = "2.6.0"
+pest_derive = "2.6.0"
 pyo3 = "0.18.3"
 pyo3-log = "0.8.1"
-typeset = "1.0.5"
+typeset = "2.0.0"

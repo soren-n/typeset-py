@@ -6,6 +6,8 @@ use pyo3::types::PyTuple;
 
 use ::typeset::{self as native};
 
+mod parser;
+
 #[pyclass]
 #[derive(Debug, Clone)]
 struct Layout {
@@ -100,7 +102,7 @@ fn parse(input: String, args: &PyTuple) -> PyResult<Layout> {
       Ok(layout.extract::<Layout>()?.native)
     }).collect();
   Ok(Layout {
-    native: native::_parse(
+    native: parser::parse(
       input.as_str(),
       &_args?
     ).map_err(exceptions::PyValueError::new_err)?
