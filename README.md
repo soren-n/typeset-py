@@ -290,7 +290,7 @@ The reason for splitting the solver into `compile` and `render`, is in case the 
 Additionally a small DSL has been defined, and a parser implemented, which allow you to write your layouts more succinctly (versus spelling out the full layout tree with the given constructors, which we've so far been doing throughout in this introduction!):
 ```Python
 ...
-layout = parse('{0} </> null </> {1}', fragment1, fragment2)
+layout = parse('{0} @ null @ {1}', fragment1, fragment2)
 ...
 ```
 
@@ -298,18 +298,18 @@ The full grammar is as such:
 ```text
 {i}       (Indexed variable for layout fragment substitution with index i)
 null      (Constructor for the empty layout)
-'x'       (Constructor for a word/text layout literal over a string x)
+"x"       (Constructor for a word/text layout literal over a string x)
 fix u     (Constructor for a fixed layout over a layout u)
 grp u     (Constructor for a group layout over a layout u)
 seq u     (Constructor for a sequence layout over a layout u)
 nest u    (Constructor for a indented/nested layout over a layout u)
 pack u    (Constructor for a indexed margin layout over a layout u)
-u </> v   (Forced linebreak composition of layouts u and v)
-u <//> v  (Forced double linebreak composition of layouts u and v)
-u <&> v   (Unpadded composition of layouts u and v)
-u <!&> v  (Infix fixed unpadded composition of layouts u and v)
-u <+> v   (Padded composition of layouts u and v)
-u <!+> v  (Infix fixed padded composition of layouts u and v)
+u @ v     (Forced linebreak composition of layouts u and v)
+u @@ v    (Forced double linebreak composition of layouts u and v)
+u & v     (Unpadded composition of layouts u and v)
+u !& v    (Infix fixed unpadded composition of layouts u and v)
+u + v     (Padded composition of layouts u and v)
+u !+ v    (Infix fixed padded composition of layouts u and v)
 ```
 
 ## Examples
