@@ -21,6 +21,6 @@ crate-type = ["cdylib"]
 lazy_static = "1.4.0"
 pest = "2.7.1"
 pest_derive = "2.7.1"
-pyo3 = "0.19.1"
+pyo3 = "0.19.2"
 pyo3-log = "0.8.3"
 typeset = "2.0.2"
