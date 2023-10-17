@@ -9,20 +9,13 @@ A layout is a tree of text literals composed together with either padded, unpadd
 The solver being an abstract concept, is concretely implemented via two accompanying functions, a _compiler_ implemented as `compile`, and a _renderer_ implemented as `render`. Where the compiler takes a `Layout` and produces an immutable optimized layout called a `Document`. The renderer takes a `Document` along with arguments for indentation and buffer width, and produces the final text output.
 
 ## Null constructor
-Sometimes in a data-structure there might be optional data (e.g. of type 'string option'), which when omitted should not have a layout. To make this case easy to handle, the `null` element of layout composition was added. The alternative would have been that you would need to keep track of an accumulator variable of the so-far-built layout in your layout function.
+Sometimes in a data-structure there can be optional data (e.g. of type 'string option'), which when omitted should not have a layout. To make this case easy to handle, the `null` element of layout composition is available.
 
 ```Python
 def layout_option(maybe_string: Optional[str]) -> Layout:
   match maybe_string:
     case None: return null()
     case data: return text(data)
-```
-Versus, e.g with an accumulator:
-```Python
-def layout_option(maybe_string: Optional[str], result: Layout) -> Layout:
-  match maybe_string:
-    case None: return result
-    case data: return comp(result, text(data), True, False)
 ```
 
 The `null` will be eliminated from the layout by the compiler, and will not be rendered, e.g:
