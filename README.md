@@ -6,7 +6,7 @@ The layout language is designed such that it fits well over a structurally recur
 
 A layout is a tree of text literals composed together with either padded, unpadded compositions or with a line-break. The layout solver will select compositions in a layout and convert them into line-breaks, in order to make the layout fit within a given layout buffer width. It will do this in a greedy way, fitting as many literals on a line as possible. While doing so it will respect the annotated properties that the compositions are constructed under.
 
-The solver being an abstract concept, is concretely implemented via two accompanying functions, a _compiler_ implemented as `compile`, and a _renderer_ implemented as `render`.
+The solver being an abstract concept, is concretely implemented via two accompanying functions, a _compiler_ implemented as `compile`, and a _renderer_ implemented as `render`. Where the compiler takes a `Layout` and produces an immutable optimized layout called a `Document`. The renderer takes a `Document` along with arguments for indentation and buffer width, and produces the final text output.
 
 ## Null constructor
 Sometimes in a data-structure there might be optional data (e.g. of type 'string option'), which when omitted should not have a layout. To make this case easy to handle, the `null` element of layout composition was added. The alternative would have been that you would need to keep track of an accumulator variable of the so-far-built layout in your layout function.
