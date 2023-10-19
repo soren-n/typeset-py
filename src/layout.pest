@@ -37,8 +37,8 @@ variable = _{ "{" ~ index ~ "}" }
 
 raw_string = { (!("\\" | "\"") ~ ANY)+ }
 predefined = { "n" | "r" | "t" | "\\" | "0" | "\"" | "'" }
-escape = { "\\" ~ predefined }
-text = @{ (raw_string | escape)* }
+escaped_string = { "\\" ~ predefined }
+text = { (raw_string | escaped_string)* }
 string = _{ "\"" ~ text ~ "\"" }
 
 primary = _{ null | variable | string | "(" ~ expr ~ ")" }

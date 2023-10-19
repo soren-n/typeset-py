@@ -72,8 +72,25 @@ pub fn parse(
           Ok(Box::new(Syntax::Null)),
         Rule::index =>
           Ok(Box::new(Syntax::Index(primary.as_str().parse::<usize>().unwrap()))),
-        Rule::text =>
-          Ok(Box::new(Syntax::Text(primary.as_str().to_string()))),
+        Rule::text => {
+          primary.into_inner().try_fold(
+            String::new(),
+            |mut result, part| match part.as_rule() {
+              Rule::raw_string => { result.push_str(part.as_str()); Ok(result) }
+              Rule::escaped_string => match &part.as_str()[1..] {
+                "n" => { result.push('\n'); Ok(result) }
+                "r" => { result.push('\r'); Ok(result) }
+                "t" => { result.push('\t'); Ok(result) }
+                "\\" => { result.push('\\'); Ok(result) }
+                "0" => { result.push('\0'); Ok(result) }
+                "\"" => { result.push('\"'); Ok(result) }
+                "'" => { result.push('\''); Ok(result) }
+                char => Err(format!("Unexpected escaped character: \\{char:?}"))
+              },
+              _ => Err(format!("Unexpected token: {part:?}"))
+            }
+          ).map(|result| Box::new(Syntax::Text(result)))
+        }
         Rule::expr =>
           _parse_syntax(primary.into_inner()),
         rule =>
