@@ -1,5 +1,5 @@
 [build-system]
-requires = ["maturin>=1.2.3"]
+requires = ["maturin>=1.3.0"]
 build-backend = "maturin"
 
 [project]
@@ -13,7 +13,7 @@ authors = [
 maintainers = [
   {name = "Soren Norbaek", email = "sorennorbaek@gmail.com"}
 ]
-requires-python = ">=3.7"
+requires-python = ">=3.8"
 keywords = ["dsl", "pretty", "printer"]
 classifiers = [
   "Programming Language :: Rust",

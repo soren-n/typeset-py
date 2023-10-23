@@ -31,9 +31,9 @@ dependencies = [
 
 [[package]]
 name = "bumpalo"
-version = "3.13.0"
+version = "3.14.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a3e2c3daef883ecc1b5d58c15adae93470a91d425f3532ba1695849656af3fc1"
+checksum = "7f30e7476521f6f8af1a1c4c0b8cc94f0bee37d91763d0ca2665f299b6cd8aec"
 
 [[package]]
 name = "cfg-if"
@@ -257,9 +257,9 @@ dependencies = [
 
 [[package]]
 name = "pyo3-log"
-version = "0.8.4"
+version = "0.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c09c2b349b6538d8a73d436ca606dab6ce0aaab4dad9e6b7bdd57a4f556c3bc3"
+checksum = "4c10808ee7250403bedb24bc30c32493e93875fef7ba3e4292226fe924f398bd"
 dependencies = [
  "arc-swap",
  "log",
@@ -376,16 +376,16 @@ checksum = "497961ef93d974e23eb6f433eb5fe1b7930b659f06d12dec6fc44a8f554c0bba"
 
 [[package]]
 name = "typeset"
-version = "2.0.2"
+version = "2.0.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "166fb515ebc4803b995bc586d7e2a5cc4da9b3de5da669056a26cfaf0364d704"
+checksum = "1c017c5a8b6405d715930142be9cdf78c9a88ec204a2fb6fb64d9c7a624d62f1"
 dependencies = [
  "bumpalo",
 ]
 
 [[package]]
 name = "typeset-py"
-version = "2.0.4"
+version = "2.0.5"
 dependencies = [
  "lazy_static",
  "pest",
