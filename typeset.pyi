@@ -1,3 +1,5 @@
+__version__ = "2.0.8"
+
 class Layout:
     """
     A class representing a Layout.

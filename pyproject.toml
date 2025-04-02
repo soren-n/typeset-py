@@ -1,30 +1,55 @@
 [build-system]
-requires = ["maturin>=1.8,<2.0"]
 build-backend = "maturin"
+requires = ["maturin>=1.8,<2.0"]
 
 [project]
-name = "typeset-soren-n"
-description = "A DSL for defining source code pretty printers"
-readme = "README.md"
-license = { file = "LICENSE" }
 authors = [
   {name = "Soren Norbaek", email = "sorennorbaek@gmail.com"}
 ]
-maintainers = [
-  {name = "Soren Norbaek", email = "sorennorbaek@gmail.com"}
-]
-requires-python = ">=3.8"
-keywords = ["dsl", "pretty", "printer"]
 classifiers = [
   "Programming Language :: Rust",
   "Programming Language :: Python :: Implementation :: CPython",
-  "Programming Language :: Python :: Implementation :: PyPy",
+  "Programming Language :: Python :: Implementation :: PyPy"
 ]
+description = "A DSL for defining source code pretty printers"
+keywords = ["dsl", "pretty", "printer"]
+license = {file = "LICENSE"}
+maintainers = [
+  {name = "Soren Norbaek", email = "sorennorbaek@gmail.com"}
+]
+name = "typeset-soren-n"
+readme = "README.md"
+requires-python = ">=3.8"
+version = "2.0.8"
 
 [project.urls]
+documentation = "https://github.com/soren-n/typeset-py"
 homepage = "https://github.com/soren-n/typeset-py"
 repository = "https://github.com/soren-n/typeset-py"
-documentation = "https://github.com/soren-n/typeset-py"
 
 [tool.maturin]
 features = ["pyo3/extension-module"]
+
+[tool.semantic_release]
+build_command = "maturin build --release"
+changelog_sections = "feature,fix,breaking,documentation,performance"
+commit_message = "chore(release): bump version to {version}"
+major_on_zero = false
+upload_to_pypi = false
+upload_to_vcs_release = true
+version_toml = ["Cargo.toml:package.version"]
+version_variables = ["typeset.pyi:__version__"]
+
+[tool.semantic_release.branches.main]
+match = "main"
+prerelease = false
+
+[tool.semantic_release.changelog]
+changelog_file = "CHANGELOG.md"
+template_dir = "templates"
+
+[tool.semantic_release.commit_parser_options]
+allowed_tags = ["build", "chore", "ci", "docs", "feat", "fix", "perf", "style", "refactor", "test", "breaking"]
+default_bump_level = 0
+minor_tags = ["feat"]
+patch_tags = ["fix", "perf", "docs"]

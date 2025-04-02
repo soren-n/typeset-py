@@ -1,0 +1,13 @@
+# Typos configuration
+
+[default.extend-words]
+ba = "ba"
+# Intentional "typos" in documentation examples
+fo = "fo"
+
+[files]
+extend-exclude = [
+  "target/",
+  ".git/",
+  "*.lock"
+]

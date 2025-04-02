@@ -70,3 +70,20 @@ docs/_build/
 
 # Pyenv
 .python-version
+
+# Pre-commit
+.pre-commit-cache/
+
+# MyPy
+.mypy_cache/
+
+# UV
+.uv/
+
+# OS generated files
+Thumbs.db
+*.tmp
+*.temp
+
+# Log files
+*.log

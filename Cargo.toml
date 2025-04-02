@@ -1,26 +1,26 @@
-[package]
-name = "typeset-py"
-description = "A DSL for defining source code pretty printers"
-version = "2.0.8"
-edition = "2021"
-authors = ["Soren Norbaek <sorennorbaek@gmail.com>"]
-homepage = "https://docs.rs/typeset/latest/typeset/"
-repository = "https://github.com/soren-n/typeset-py"
-documentation = "https://docs.rs/typeset/latest/typeset/"
-keywords = ["dsl", "pretty", "printer"]
-categories = ["compilers", "template-engine"]
-license-file = "LICENSE"
-readme = "README.md"
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-[lib]
-name = "typeset"
-crate-type = ["cdylib"]
-
 [dependencies]
 lazy_static = "1.5.0"
 pest = "2.8.1"
 pest_derive = "2.8.1"
 pyo3 = "0.25.1"
 pyo3-log = "0.12.4"
-typeset = "2.0.5"
+typeset = "3.1.0"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[lib]
+crate-type = ["cdylib"]
+name = "typeset"
+
+[package]
+authors = ["Soren Norbaek <sorennorbaek@gmail.com>"]
+categories = ["compilers", "template-engine"]
+description = "A DSL for defining source code pretty printers"
+documentation = "https://docs.rs/typeset/latest/typeset/"
+edition = "2021"
+homepage = "https://docs.rs/typeset/latest/typeset/"
+keywords = ["dsl", "pretty", "printer"]
+license-file = "LICENSE"
+name = "typeset-py"
+readme = "README.md"
+repository = "https://github.com/soren-n/typeset-py"
+version = "2.0.8"

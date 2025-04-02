@@ -1,0 +1,197 @@
+name: Release
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  id-token: write
+  pull-requests: write
+
+jobs:
+  semantic-release:
+    name: Semantic Release
+    runs-on: ubuntu-latest
+    outputs:
+      released: ${{ steps.semantic-release.outputs.released }}
+      version: ${{ steps.semantic-release.outputs.version }}
+      tag: ${{ steps.semantic-release.outputs.tag }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v3
+
+      - name: Install semantic-release
+        run: |
+          uv tool install python-semantic-release
+
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install toml-cli
+        run: cargo install toml-cli
+
+      - name: Semantic Release
+        id: semantic-release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Configure git
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          # Run semantic-release
+          semantic-release version
+
+          # Check if release was created
+          if git describe --exact-match --tags HEAD >/dev/null 2>&1; then
+            echo "released=true" >> $GITHUB_OUTPUT
+            echo "version=$(git describe --tags --abbrev=0)" >> $GITHUB_OUTPUT
+            echo "tag=$(git describe --tags --abbrev=0)" >> $GITHUB_OUTPUT
+          else
+            echo "released=false" >> $GITHUB_OUTPUT
+          fi
+
+  build-and-publish:
+    name: Build and Publish
+    needs: semantic-release
+    if: needs.semantic-release.outputs.released == 'true'
+    runs-on: ${{ matrix.platform.runner }}
+    strategy:
+      matrix:
+        platform:
+          - runner: ubuntu-22.04
+            target: x86_64
+          - runner: ubuntu-22.04
+            target: x86
+          - runner: ubuntu-22.04
+            target: aarch64
+          - runner: ubuntu-22.04
+            target: armv7
+          - runner: ubuntu-22.04
+            target: s390x
+          - runner: ubuntu-22.04
+            target: ppc64le
+          - runner: windows-latest
+            target: x64
+          - runner: windows-latest
+            target: x86
+          - runner: macos-13
+            target: x86_64
+          - runner: macos-14
+            target: aarch64
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.semantic-release.outputs.tag }}
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: 3.x
+          architecture: ${{ matrix.platform.target == 'x86' && 'x86' || 'x64' }}
+
+      - name: Build wheels
+        uses: PyO3/maturin-action@v1
+        with:
+          target: ${{ matrix.platform.target }}
+          rust-toolchain: stable
+          args: --release --out dist --find-interpreter
+          sccache: true
+          manylinux: ${{ contains(matrix.platform.runner, 'ubuntu') && 'auto' || null }}
+
+      - name: Upload wheels
+        uses: actions/upload-artifact@v4
+        with:
+          name: wheels-${{ matrix.platform.runner }}-${{ matrix.platform.target }}
+          path: dist
+
+  musllinux:
+    name: Build musllinux
+    needs: semantic-release
+    if: needs.semantic-release.outputs.released == 'true'
+    runs-on: ubuntu-22.04
+    strategy:
+      matrix:
+        target: [x86_64, x86, aarch64, armv7]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.semantic-release.outputs.tag }}
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: 3.x
+
+      - name: Build wheels
+        uses: PyO3/maturin-action@v1
+        with:
+          target: ${{ matrix.target }}
+          rust-toolchain: stable
+          args: --release --out dist --find-interpreter
+          sccache: true
+          manylinux: musllinux_1_2
+
+      - name: Upload wheels
+        uses: actions/upload-artifact@v4
+        with:
+          name: wheels-musllinux-${{ matrix.target }}
+          path: dist
+
+  sdist:
+    name: Build source distribution
+    needs: semantic-release
+    if: needs.semantic-release.outputs.released == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.semantic-release.outputs.tag }}
+
+      - name: Build sdist
+        uses: PyO3/maturin-action@v1
+        with:
+          command: sdist
+          args: --out dist
+
+      - name: Upload sdist
+        uses: actions/upload-artifact@v4
+        with:
+          name: wheels-sdist
+          path: dist
+
+  publish:
+    name: Publish to PyPI
+    runs-on: ubuntu-latest
+    needs: [semantic-release, build-and-publish, musllinux, sdist]
+    if: needs.semantic-release.outputs.released == 'true'
+    environment: release
+    permissions:
+      id-token: write
+      contents: write
+      attestations: write
+    steps:
+      - uses: actions/download-artifact@v4
+
+      - name: Generate artifact attestation
+        uses: actions/attest-build-provenance@v2
+        with:
+          subject-path: 'wheels-*/*'
+
+      - name: Publish to PyPI
+        uses: PyO3/maturin-action@v1
+        env:
+          MATURIN_PYPI_TOKEN: ${{ secrets.PYPI_API_TOKEN }}
+        with:
+          command: upload
+          args: --non-interactive --skip-existing wheels-*/*
