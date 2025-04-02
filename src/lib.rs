@@ -96,9 +96,11 @@ fn render(doc: Document, tab: usize, width: usize) -> PyResult<String> {
 
 #[pyfunction]
 #[pyo3(signature = (input, *args))]
-fn parse(input: String, args: &PyTuple) -> PyResult<Layout> {
+fn parse(input: String, args: &Bound<'_, PyTuple>) -> PyResult<Layout> {
   let _args: Result<Vec<Box<native::Layout>>, PyErr> =
-    args.iter().map(|layout: &PyAny| -> Result<Box<native::Layout>, PyErr> {
+    args.iter().map(|
+      layout: Bound<'_, PyAny>
+    | -> Result<Box<native::Layout>, PyErr> {
       Ok(layout.extract::<Layout>()?.native)
     }).collect();
   Ok(Layout {
@@ -110,7 +112,10 @@ fn parse(input: String, args: &PyTuple) -> PyResult<Layout> {
 }
 
 #[pymodule]
-fn typeset(_py: Python, typeset_module: &PyModule) -> PyResult<()> {
+fn typeset(
+  _py: Python,
+  typeset_module: &Bound<'_, PyModule>
+) -> PyResult<()> {
   pyo3_log::init();
   typeset_module.add_class::<Layout>()?;
   typeset_module.add_class::<Document>()?;
