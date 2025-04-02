@@ -1,6 +1,6 @@
 [build-system]
 build-backend = "maturin"
-requires = ["maturin>=1.8,<2.0"]
+requires = ["maturin>=1.9,<2.0"]
 
 [project]
 authors = [
@@ -19,7 +19,7 @@ maintainers = [
 ]
 name = "typeset-soren-n"
 readme = "README.md"
-requires-python = ">=3.8"
+requires-python = ">=3.9"
 version = "2.0.8"
 
 [project.urls]
