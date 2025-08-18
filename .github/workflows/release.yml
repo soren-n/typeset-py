@@ -19,7 +19,7 @@ jobs:
       version: ${{ steps.semantic-release.outputs.version }}
       tag: ${{ steps.semantic-release.outputs.tag }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
@@ -92,7 +92,7 @@ jobs:
           - runner: macos-14
             target: aarch64
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           ref: ${{ needs.semantic-release.outputs.tag }}
 
@@ -125,7 +125,7 @@ jobs:
       matrix:
         target: [x86_64, x86, aarch64, armv7]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           ref: ${{ needs.semantic-release.outputs.tag }}
 
@@ -154,7 +154,7 @@ jobs:
     if: needs.semantic-release.outputs.released == 'true'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           ref: ${{ needs.semantic-release.outputs.tag }}
 
@@ -181,7 +181,7 @@ jobs:
       contents: write
       attestations: write
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v5
 
       - name: Generate artifact attestation
         uses: actions/attest-build-provenance@v2
