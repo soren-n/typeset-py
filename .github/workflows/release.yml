@@ -39,8 +39,10 @@ jobs:
       - name: Set up Rust
         uses: dtolnay/rust-toolchain@stable
 
-      - name: Install toml-cli
-        run: cargo install toml-cli
+      - name: Install build tools
+        run: |
+          cargo install toml-cli
+          uv tool install maturin
 
       - name: Semantic Release
         id: semantic-release
