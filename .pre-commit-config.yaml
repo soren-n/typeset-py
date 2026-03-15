@@ -76,6 +76,7 @@ repos:
     hooks:
       - id: pretty-format-toml
         args: [--autofix]
+        exclude: Cargo\.lock
 
   # Spell checking for documentation
   - repo: https://github.com/crate-ci/typos
