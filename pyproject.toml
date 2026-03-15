@@ -12,6 +12,7 @@ classifiers = [
   "Programming Language :: Python :: Implementation :: PyPy"
 ]
 description = "A DSL for defining source code pretty printers"
+dynamic = ["version"]
 keywords = ["dsl", "pretty", "printer"]
 license = {file = "LICENSE"}
 maintainers = [
@@ -20,7 +21,6 @@ maintainers = [
 name = "typeset-soren-n"
 readme = "README.md"
 requires-python = ">=3.9"
-version = "2.0.8"
 
 [project.urls]
 documentation = "https://github.com/soren-n/typeset-py"

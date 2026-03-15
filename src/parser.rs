@@ -121,10 +121,11 @@ pub fn parse(input: &str, args: &[Box<Layout>]) -> Result<Box<Layout>, String> {
             })
             .parse(tokens)
     }
+    #[allow(clippy::boxed_local)]
     fn _interp_syntax(syntax: Box<Syntax>, args: &[Box<Layout>]) -> Result<Box<Layout>, String> {
-        match syntax {
-            box Syntax::Null => Ok(null()),
-            box Syntax::Index(index) => {
+        match *syntax {
+            Syntax::Null => Ok(null()),
+            Syntax::Index(index) => {
                 let length = args.len();
                 if index < length {
                     Ok(args[index].clone())
@@ -132,53 +133,53 @@ pub fn parse(input: &str, args: &[Box<Layout>]) -> Result<Box<Layout>, String> {
                     Err(format!("invalid index {:?}", index))
                 }
             }
-            box Syntax::Text(data) => Ok(text(data)),
-            box Syntax::Fix(syntax1) => {
+            Syntax::Text(data) => Ok(text(data)),
+            Syntax::Fix(syntax1) => {
                 let layout = _interp_syntax(syntax1, args);
                 Ok(fix(layout?))
             }
-            box Syntax::Grp(syntax1) => {
+            Syntax::Grp(syntax1) => {
                 let layout = _interp_syntax(syntax1, args);
                 Ok(grp(layout?))
             }
-            box Syntax::Seq(syntax1) => {
+            Syntax::Seq(syntax1) => {
                 let layout = _interp_syntax(syntax1, args);
                 Ok(seq(layout?))
             }
-            box Syntax::Nest(syntax1) => {
+            Syntax::Nest(syntax1) => {
                 let layout = _interp_syntax(syntax1, args);
                 Ok(nest(layout?))
             }
-            box Syntax::Pack(syntax1) => {
+            Syntax::Pack(syntax1) => {
                 let layout = _interp_syntax(syntax1, args);
                 Ok(pack(layout?))
             }
-            box Syntax::SingleLine(left, right) => {
+            Syntax::SingleLine(left, right) => {
                 let left1 = _interp_syntax(left, args);
                 let right1 = _interp_syntax(right, args);
                 Ok(line(left1?, right1?))
             }
-            box Syntax::DoubleLine(left, right) => {
+            Syntax::DoubleLine(left, right) => {
                 let left1 = _interp_syntax(left, args);
                 let right1 = _interp_syntax(right, args);
                 Ok(line(left1?, line(null(), right1?)))
             }
-            box Syntax::UnpadComp(left, right) => {
+            Syntax::UnpadComp(left, right) => {
                 let left1 = _interp_syntax(left, args);
                 let right1 = _interp_syntax(right, args);
                 Ok(comp(left1?, right1?, false, false))
             }
-            box Syntax::PadComp(left, right) => {
+            Syntax::PadComp(left, right) => {
                 let left1 = _interp_syntax(left, args);
                 let right1 = _interp_syntax(right, args);
                 Ok(comp(left1?, right1?, true, false))
             }
-            box Syntax::FixUnpadComp(left, right) => {
+            Syntax::FixUnpadComp(left, right) => {
                 let left1 = _interp_syntax(left, args);
                 let right1 = _interp_syntax(right, args);
                 Ok(comp(left1?, right1?, false, true))
             }
-            box Syntax::FixPadComp(left, right) => {
+            Syntax::FixPadComp(left, right) => {
                 let left1 = _interp_syntax(left, args);
                 let right1 = _interp_syntax(right, args);
                 Ok(comp(left1?, right1?, true, true))
