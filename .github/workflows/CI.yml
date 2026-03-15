@@ -22,8 +22,6 @@ jobs:
           - runner: ubuntu-latest
             target: x86_64
           - runner: ubuntu-latest
-            target: x86
-          - runner: ubuntu-latest
             target: aarch64
           - runner: ubuntu-latest
             target: armv7
@@ -57,8 +55,6 @@ jobs:
         platform:
           - runner: ubuntu-latest
             target: x86_64
-          - runner: ubuntu-latest
-            target: x86
           - runner: ubuntu-latest
             target: aarch64
           - runner: ubuntu-latest
