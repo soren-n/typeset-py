@@ -12,13 +12,13 @@ classifiers = [
   "Programming Language :: Python :: Implementation :: PyPy"
 ]
 description = "A DSL for defining source code pretty printers"
+dynamic = ["version"]
 keywords = ["dsl", "pretty", "printer"]
 license = {file = "LICENSE"}
 maintainers = [
   {name = "Soren Norbaek", email = "sorennorbaek@gmail.com"}
 ]
 name = "typeset-soren-n"
-dynamic = ["version"]
 readme = "README.md"
 requires-python = ">=3.9"
 

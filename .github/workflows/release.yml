@@ -37,7 +37,7 @@ jobs:
           uv tool install python-semantic-release
 
       - name: Set up Rust
-        uses: dtolnay/rust-toolchain@stable
+        uses: dtolnay/rust-toolchain@nightly
 
       - name: Install toml-cli
         run: cargo install toml-cli
@@ -105,7 +105,7 @@ jobs:
         uses: PyO3/maturin-action@v1
         with:
           target: ${{ matrix.platform.target }}
-          rust-toolchain: stable
+          rust-toolchain: nightly
           args: --release --out dist --find-interpreter
           sccache: true
           manylinux: ${{ contains(matrix.platform.runner, 'ubuntu') && 'auto' || null }}
@@ -137,7 +137,7 @@ jobs:
         uses: PyO3/maturin-action@v1
         with:
           target: ${{ matrix.target }}
-          rust-toolchain: stable
+          rust-toolchain: nightly
           args: --release --out dist --find-interpreter
           sccache: true
           manylinux: musllinux_1_2
