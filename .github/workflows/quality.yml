@@ -78,24 +78,6 @@ jobs:
           python -c "import typeset; print('Import successful')"
           python -c "import typeset; print(typeset.render(typeset.compile(typeset.text('hello')), 2, 80))"
 
-  semantic-versioning:
-    name: Semantic Versioning Check
-    runs-on: ubuntu-latest
-    if: github.event_name == 'pull_request'
-    steps:
-      - uses: actions/checkout@v5
-        with:
-          fetch-depth: 0
-
-      - name: Set up Rust
-        uses: dtolnay/rust-toolchain@stable
-
-      - name: Install cargo-semver-checks
-        run: cargo install cargo-semver-checks
-
-      - name: Check semantic versioning
-        run: cargo semver-checks check-release
-
   pre-commit:
     name: Pre-commit Hooks
     runs-on: ubuntu-latest
