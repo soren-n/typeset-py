@@ -40,7 +40,7 @@ jobs:
         uses: PyO3/maturin-action@v1
         with:
           target: ${{ matrix.platform.target }}
-          rust-toolchain: nightly
+          rust-toolchain: stable
           args: --release --out dist --find-interpreter
           sccache: true
           manylinux: auto
@@ -72,7 +72,7 @@ jobs:
         uses: PyO3/maturin-action@v1
         with:
           target: ${{ matrix.platform.target }}
-          rust-toolchain: nightly
+          rust-toolchain: stable
           args: --release --out dist --find-interpreter
           sccache: true
           manylinux: musllinux_1_2
@@ -101,7 +101,7 @@ jobs:
         uses: PyO3/maturin-action@v1
         with:
           target: ${{ matrix.platform.target }}
-          rust-toolchain: nightly
+          rust-toolchain: stable
           args: --release --out dist --find-interpreter
           sccache: true
       - name: Upload wheels
@@ -128,7 +128,7 @@ jobs:
         uses: PyO3/maturin-action@v1
         with:
           target: ${{ matrix.platform.target }}
-          rust-toolchain: nightly
+          rust-toolchain: stable
           args: --release --out dist --find-interpreter
           sccache: true
       - name: Upload wheels
