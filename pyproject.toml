@@ -18,9 +18,9 @@ maintainers = [
   {name = "Soren Norbaek", email = "sorennorbaek@gmail.com"}
 ]
 name = "typeset-soren-n"
+dynamic = ["version"]
 readme = "README.md"
 requires-python = ">=3.9"
-version = "2.0.8"
 
 [project.urls]
 documentation = "https://github.com/soren-n/typeset-py"
