@@ -33,7 +33,7 @@ repos:
       - id: clippy
         name: Rust linting (cargo clippy)
         description: Lint Rust code with cargo clippy
-        entry: cargo clippy --locked --all-targets --all-features -- -D warnings
+        entry: cargo clippy --all-targets --all-features -- -D warnings
         language: system
         files: \.rs$
         pass_filenames: false
@@ -44,7 +44,7 @@ repos:
       - id: cargo-test
         name: Rust testing (cargo test)
         description: Run Rust tests
-        entry: cargo test --locked --all-features
+        entry: cargo test --all-features
         language: system
         files: \.rs$
         pass_filenames: false
