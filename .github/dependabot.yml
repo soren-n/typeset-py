@@ -4,7 +4,13 @@ updates:
     directory: "/"
     schedule:
       interval: "weekly"
+    groups:
+      actions-all:
+        patterns: ["*"]
   - package-ecosystem: "cargo"
     directory: "/"
     schedule:
       interval: "weekly"
+    groups:
+      cargo-all:
+        patterns: ["*"]
