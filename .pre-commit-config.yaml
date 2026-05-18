@@ -27,38 +27,12 @@ repos:
         files: \.rs$
         pass_filenames: false
 
-  # Rust linting
-  - repo: local
-    hooks:
-      - id: clippy
-        name: Rust linting (cargo clippy)
-        description: Lint Rust code with cargo clippy
-        entry: cargo clippy --all-targets --all-features -- -D warnings
-        language: system
-        files: \.rs$
-        pass_filenames: false
-
-  # Rust testing
-  - repo: local
-    hooks:
-      - id: cargo-test
-        name: Rust testing (cargo test)
-        description: Run Rust tests
-        entry: cargo test --all-features
-        language: system
-        files: \.rs$
-        pass_filenames: false
-
-  # Security audit
-  - repo: local
-    hooks:
-      - id: cargo-audit
-        name: Rust security audit (cargo audit)
-        description: Audit Rust dependencies for security vulnerabilities
-        entry: cargo audit
-        language: system
-        files: (Cargo\.(toml|lock)|\.rs)$
-        pass_filenames: false
+  # NOTE: cargo clippy / test / audit are intentionally NOT pre-commit hooks.
+  # They are enforced by the dedicated "Rust Quality Checks" job in
+  # .github/workflows/quality.yml. Running them under pre-commit caused
+  # spurious failures: semantic-release bumps Cargo.toml on every push
+  # without updating Cargo.lock, so cargo would regenerate the lock and
+  # pre-commit fails any hook that modifies a tracked file.
 
   # Python type checking for .pyi files
   - repo: https://github.com/pre-commit/mirrors-mypy
