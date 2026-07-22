@@ -32,9 +32,7 @@ binary_op = _{
 
 null = { "null" }
 
-digit = { '0'..'9' }
-non_zero = { '1'..'9' }
-index = @{ "0" | non_zero ~ digit* }
+index = @{ "0" | ASCII_NONZERO_DIGIT ~ ASCII_DIGIT* }
 variable = _{ "{" ~ index ~ "}" }
 
 raw_string = { (!("\\" | "\"") ~ ANY)+ }

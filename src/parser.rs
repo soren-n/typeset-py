@@ -1,5 +1,7 @@
-use pest::iterators::Pairs;
-use pest::pratt_parser::PrattParser;
+use std::sync::LazyLock;
+
+use pest::iterators::{Pair, Pairs};
+use pest::pratt_parser::{Assoc, Op, PrattParser};
 use pest::Parser;
 use pest_derive::Parser;
 
@@ -9,189 +11,95 @@ use typeset::{comp, fix, grp, line, nest, null, pack, seq, text, Break, Layout, 
 #[grammar = "layout.pest"]
 pub struct LayoutParser;
 
-lazy_static::lazy_static! {
-  static ref PRATT_PARSER: PrattParser<Rule> = {
-    use pest::pratt_parser::{Assoc::*, Op};
+static PRATT: LazyLock<PrattParser<Rule>> = LazyLock::new(|| {
     PrattParser::new()
-      .op(
-        Op::infix(Rule::single_line_op, Right) |
-        Op::infix(Rule::double_line_op, Right) |
-        Op::infix(Rule::unpad_comp_op, Right) |
-        Op::infix(Rule::pad_comp_op, Right) |
-        Op::infix(Rule::fix_unpad_comp_op, Right) |
-        Op::infix(Rule::fix_pad_comp_op, Right)
-      )
-      .op(
-        Op::prefix(Rule::fix_op) |
-        Op::prefix(Rule::grp_op) |
-        Op::prefix(Rule::seq_op) |
-        Op::prefix(Rule::nest_op) |
-        Op::prefix(Rule::pack_op)
-      )
-  };
+        .op(Op::infix(Rule::double_line_op, Assoc::Right)
+            | Op::infix(Rule::single_line_op, Assoc::Right)
+            | Op::infix(Rule::fix_unpad_comp_op, Assoc::Right)
+            | Op::infix(Rule::unpad_comp_op, Assoc::Right)
+            | Op::infix(Rule::fix_pad_comp_op, Assoc::Right)
+            | Op::infix(Rule::pad_comp_op, Assoc::Right))
+        .op(Op::prefix(Rule::fix_op)
+            | Op::prefix(Rule::grp_op)
+            | Op::prefix(Rule::seq_op)
+            | Op::prefix(Rule::nest_op)
+            | Op::prefix(Rule::pack_op))
+});
+
+/// Parse a layout DSL script, substituting `{i}` with `fragments[i]`.
+pub fn parse(input: &str, fragments: &[Box<Layout>]) -> Result<Box<Layout>, String> {
+    let mut pairs = LayoutParser::parse(Rule::layout, input).map_err(|error| error.to_string())?;
+    build(pairs.next().unwrap().into_inner(), fragments)
 }
 
-#[derive(Debug)]
-enum Syntax {
-    Null,
-    Index(usize),
-    Text(String),
-    Fix(Box<Syntax>),
-    Grp(Box<Syntax>),
-    Seq(Box<Syntax>),
-    Nest(Box<Syntax>),
-    Pack(Box<Syntax>),
-    SingleLine(Box<Syntax>, Box<Syntax>),
-    DoubleLine(Box<Syntax>, Box<Syntax>),
-    UnpadComp(Box<Syntax>, Box<Syntax>),
-    PadComp(Box<Syntax>, Box<Syntax>),
-    FixUnpadComp(Box<Syntax>, Box<Syntax>),
-    FixPadComp(Box<Syntax>, Box<Syntax>),
+fn build(pairs: Pairs<Rule>, fragments: &[Box<Layout>]) -> Result<Box<Layout>, String> {
+    PRATT
+        .map_primary(|primary| match primary.as_rule() {
+            Rule::null => Ok(null()),
+            Rule::index => substitute(primary, fragments),
+            Rule::text => Ok(text(unescape(primary))),
+            Rule::expr => build(primary.into_inner(), fragments),
+            rule => unreachable!("grammar produced unexpected primary: {rule:?}"),
+        })
+        .map_prefix(|op, layout| {
+            let constructor = match op.as_rule() {
+                Rule::fix_op => fix,
+                Rule::grp_op => grp,
+                Rule::seq_op => seq,
+                Rule::nest_op => nest,
+                Rule::pack_op => pack,
+                rule => unreachable!("grammar produced unexpected prefix operator: {rule:?}"),
+            };
+            Ok(constructor(layout?))
+        })
+        .map_infix(|left, op, right| {
+            let (left, right) = (left?, right?);
+            Ok(match op.as_rule() {
+                Rule::single_line_op => line(left, right),
+                Rule::double_line_op => line(left, line(null(), right)),
+                Rule::unpad_comp_op => comp(left, right, Pad::Unpadded, Break::Breakable),
+                Rule::pad_comp_op => comp(left, right, Pad::Padded, Break::Breakable),
+                Rule::fix_unpad_comp_op => comp(left, right, Pad::Unpadded, Break::Fixed),
+                Rule::fix_pad_comp_op => comp(left, right, Pad::Padded, Break::Fixed),
+                rule => unreachable!("grammar produced unexpected infix operator: {rule:?}"),
+            })
+        })
+        .parse(pairs)
 }
 
-#[doc(hidden)]
-pub fn parse(input: &str, args: &[Box<Layout>]) -> Result<Box<Layout>, String> {
-    fn _parse_syntax(tokens: Pairs<Rule>) -> Result<Box<Syntax>, String> {
-        PRATT_PARSER
-            .map_primary(|primary| match primary.as_rule() {
-                Rule::null => Ok(Box::new(Syntax::Null)),
-                Rule::index => primary
-                    .as_str()
-                    .parse::<usize>()
-                    .map(|index| Box::new(Syntax::Index(index)))
-                    .map_err(|_| format!("fragment index {} is out of range", primary.as_str())),
-                Rule::text => primary
-                    .into_inner()
-                    .try_fold(String::new(), |mut result, part| match part.as_rule() {
-                        Rule::raw_string => {
-                            result.push_str(part.as_str());
-                            Ok(result)
-                        }
-                        Rule::escaped_string => match &part.as_str()[1..] {
-                            "n" => {
-                                result.push('\n');
-                                Ok(result)
-                            }
-                            "r" => {
-                                result.push('\r');
-                                Ok(result)
-                            }
-                            "t" => {
-                                result.push('\t');
-                                Ok(result)
-                            }
-                            "\\" => {
-                                result.push('\\');
-                                Ok(result)
-                            }
-                            "0" => {
-                                result.push('\0');
-                                Ok(result)
-                            }
-                            "\"" => {
-                                result.push('\"');
-                                Ok(result)
-                            }
-                            "'" => {
-                                result.push('\'');
-                                Ok(result)
-                            }
-                            char => Err(format!("Unexpected escaped character: \\{char:?}")),
-                        },
-                        _ => Err(format!("Unexpected token: {part:?}")),
-                    })
-                    .map(|result| Box::new(Syntax::Text(result))),
-                Rule::expr => _parse_syntax(primary.into_inner()),
-                rule => Err(format!("expected atom, found {:?}", rule)),
-            })
-            .map_infix(|left, op, right| match op.as_rule() {
-                Rule::single_line_op => Ok(Box::new(Syntax::SingleLine(left?, right?))),
-                Rule::double_line_op => Ok(Box::new(Syntax::DoubleLine(left?, right?))),
-                Rule::unpad_comp_op => Ok(Box::new(Syntax::UnpadComp(left?, right?))),
-                Rule::pad_comp_op => Ok(Box::new(Syntax::PadComp(left?, right?))),
-                Rule::fix_unpad_comp_op => Ok(Box::new(Syntax::FixUnpadComp(left?, right?))),
-                Rule::fix_pad_comp_op => Ok(Box::new(Syntax::FixPadComp(left?, right?))),
-                rule => Err(format!("expected binary operator, found {:?}", rule)),
-            })
-            .map_prefix(|op, syntax| match op.as_rule() {
-                Rule::fix_op => Ok(Box::new(Syntax::Fix(syntax?))),
-                Rule::grp_op => Ok(Box::new(Syntax::Grp(syntax?))),
-                Rule::seq_op => Ok(Box::new(Syntax::Seq(syntax?))),
-                Rule::nest_op => Ok(Box::new(Syntax::Nest(syntax?))),
-                Rule::pack_op => Ok(Box::new(Syntax::Pack(syntax?))),
-                rule => Err(format!("expected unary operator, found {:?}", rule)),
-            })
-            .parse(tokens)
-    }
-    #[allow(clippy::boxed_local)]
-    fn _interp_syntax(syntax: Box<Syntax>, args: &[Box<Layout>]) -> Result<Box<Layout>, String> {
-        match *syntax {
-            Syntax::Null => Ok(null()),
-            Syntax::Index(index) => args.get(index).cloned().ok_or_else(|| {
-                format!(
-                    "fragment index {index} is out of range; {} fragment(s) given",
-                    args.len()
-                )
+fn substitute(pair: Pair<Rule>, fragments: &[Box<Layout>]) -> Result<Box<Layout>, String> {
+    let index: usize = pair
+        .as_str()
+        .parse()
+        .map_err(|_| format!("fragment index {} is out of range", pair.as_str()))?;
+    fragments.get(index).cloned().ok_or_else(|| {
+        format!(
+            "fragment index {index} is out of range; {} fragment(s) given",
+            fragments.len()
+        )
+    })
+}
+
+fn unescape(pair: Pair<Rule>) -> String {
+    let mut result = String::new();
+    for part in pair.into_inner() {
+        match part.as_rule() {
+            Rule::raw_string => result.push_str(part.as_str()),
+            Rule::escaped_string => result.push(match &part.as_str()[1..] {
+                "n" => '\n',
+                "r" => '\r',
+                "t" => '\t',
+                "\\" => '\\',
+                "0" => '\0',
+                "\"" => '"',
+                "'" => '\'',
+                other => unreachable!("grammar produced unexpected escape: \\{other}"),
             }),
-            Syntax::Text(data) => Ok(text(data)),
-            Syntax::Fix(syntax1) => {
-                let layout = _interp_syntax(syntax1, args);
-                Ok(fix(layout?))
-            }
-            Syntax::Grp(syntax1) => {
-                let layout = _interp_syntax(syntax1, args);
-                Ok(grp(layout?))
-            }
-            Syntax::Seq(syntax1) => {
-                let layout = _interp_syntax(syntax1, args);
-                Ok(seq(layout?))
-            }
-            Syntax::Nest(syntax1) => {
-                let layout = _interp_syntax(syntax1, args);
-                Ok(nest(layout?))
-            }
-            Syntax::Pack(syntax1) => {
-                let layout = _interp_syntax(syntax1, args);
-                Ok(pack(layout?))
-            }
-            Syntax::SingleLine(left, right) => {
-                let left1 = _interp_syntax(left, args);
-                let right1 = _interp_syntax(right, args);
-                Ok(line(left1?, right1?))
-            }
-            Syntax::DoubleLine(left, right) => {
-                let left1 = _interp_syntax(left, args);
-                let right1 = _interp_syntax(right, args);
-                Ok(line(left1?, line(null(), right1?)))
-            }
-            Syntax::UnpadComp(left, right) => {
-                let left1 = _interp_syntax(left, args);
-                let right1 = _interp_syntax(right, args);
-                Ok(comp(left1?, right1?, Pad::Unpadded, Break::Breakable))
-            }
-            Syntax::PadComp(left, right) => {
-                let left1 = _interp_syntax(left, args);
-                let right1 = _interp_syntax(right, args);
-                Ok(comp(left1?, right1?, Pad::Padded, Break::Breakable))
-            }
-            Syntax::FixUnpadComp(left, right) => {
-                let left1 = _interp_syntax(left, args);
-                let right1 = _interp_syntax(right, args);
-                Ok(comp(left1?, right1?, Pad::Unpadded, Break::Fixed))
-            }
-            Syntax::FixPadComp(left, right) => {
-                let left1 = _interp_syntax(left, args);
-                let right1 = _interp_syntax(right, args);
-                Ok(comp(left1?, right1?, Pad::Padded, Break::Fixed))
-            }
+            rule => unreachable!("grammar produced unexpected text part: {rule:?}"),
         }
     }
-    match LayoutParser::parse(Rule::layout, input) {
-        Ok(mut tokens) => _interp_syntax(_parse_syntax(tokens.next().unwrap().into_inner())?, args),
-        Err(error) => Err(format!("{}", error)),
-    }
+    result
 }
-
 #[cfg(test)]
 mod tests {
     use super::parse;

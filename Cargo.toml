@@ -1,5 +1,4 @@
 [dependencies]
-lazy_static = "1.5.0"
 pest = "2.8.7"
 pest_derive = "2.8.7"
 pyo3 = "0.29.0"
