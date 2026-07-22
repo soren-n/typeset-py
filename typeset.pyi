@@ -112,6 +112,17 @@ def comp(left: Layout, right: Layout, padded: bool, fixed: bool) -> Layout:
         A potentially padded and fixed composed layout.
     """
 
+def print(doc: Document) -> str:
+    """
+    Format a document's debug representation as a string.
+
+    Args:
+        doc: a document to be formatted.
+
+    Returns:
+        A debug representation of the document as a string.
+    """
+
 def compile(layout: Layout) -> Document:
     """
     Compile a layout to construct a document.

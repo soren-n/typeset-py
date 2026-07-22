@@ -1,10 +1,10 @@
 [dependencies]
 lazy_static = "1.5.0"
-pest = "2.8.4"
-pest_derive = "2.8.4"
-pyo3 = "0.25.1"
-pyo3-log = "0.12.4"
-typeset = "3.1.0"
+pest = "2.8.7"
+pest_derive = "2.8.7"
+pyo3 = "0.29.0"
+pyo3-log = "0.13.4"
+typeset = "4.0.0"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 [lib]

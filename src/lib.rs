@@ -2,11 +2,11 @@ use pyo3::exceptions;
 use pyo3::prelude::*;
 use pyo3::types::PyTuple;
 
-use ::typeset::{self as native};
+use ::typeset::{self as native, Break, Pad};
 
 mod parser;
 
-#[pyclass]
+#[pyclass(from_py_object)]
 #[derive(Debug, Clone)]
 struct Layout {
     native: Box<native::Layout>,
@@ -15,11 +15,11 @@ struct Layout {
 #[pymethods]
 impl Layout {
     fn __repr__(&self) -> String {
-        format!("{}", self.native)
+        format!("{:?}", self.native)
     }
 }
 
-#[pyclass]
+#[pyclass(from_py_object)]
 #[derive(Debug, Clone)]
 struct Document {
     native: Box<native::Doc>,
@@ -28,7 +28,7 @@ struct Document {
 #[pymethods]
 impl Document {
     fn __repr__(&self) -> String {
-        format!("{}", self.native)
+        format!("{:?}", self.native)
     }
 }
 
@@ -90,14 +90,16 @@ fn line(left: Layout, right: Layout) -> PyResult<Layout> {
 
 #[pyfunction]
 fn comp(left: Layout, right: Layout, pad: bool, fix: bool) -> PyResult<Layout> {
+    let pad = if pad { Pad::Padded } else { Pad::Unpadded };
+    let brk = if fix { Break::Fixed } else { Break::Breakable };
     Ok(Layout {
-        native: native::comp(left.native, right.native, pad, fix),
+        native: native::comp(left.native, right.native, pad, brk),
     })
 }
 
 #[pyfunction]
 fn print(doc: Document) -> PyResult<String> {
-    Ok(format!("{}", doc.native))
+    Ok(format!("{:?}", doc.native))
 }
 
 #[pyfunction]
@@ -109,7 +111,7 @@ fn compile(layout: Layout) -> PyResult<Document> {
 
 #[pyfunction]
 fn render(doc: Document, tab: usize, width: usize) -> PyResult<String> {
-    Ok(native::render(doc.native, tab, width))
+    Ok(native::render(&doc.native, tab, width))
 }
 
 #[pyfunction]

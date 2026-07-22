@@ -3,7 +3,7 @@ use pest::pratt_parser::PrattParser;
 use pest::Parser;
 use pest_derive::Parser;
 
-use typeset::{comp, fix, grp, line, nest, null, pack, seq, text, Layout};
+use typeset::{comp, fix, grp, line, nest, null, pack, seq, text, Break, Layout, Pad};
 
 #[derive(Parser)]
 #[grammar = "layout.pest"]
@@ -167,22 +167,22 @@ pub fn parse(input: &str, args: &[Box<Layout>]) -> Result<Box<Layout>, String> {
             Syntax::UnpadComp(left, right) => {
                 let left1 = _interp_syntax(left, args);
                 let right1 = _interp_syntax(right, args);
-                Ok(comp(left1?, right1?, false, false))
+                Ok(comp(left1?, right1?, Pad::Unpadded, Break::Breakable))
             }
             Syntax::PadComp(left, right) => {
                 let left1 = _interp_syntax(left, args);
                 let right1 = _interp_syntax(right, args);
-                Ok(comp(left1?, right1?, true, false))
+                Ok(comp(left1?, right1?, Pad::Padded, Break::Breakable))
             }
             Syntax::FixUnpadComp(left, right) => {
                 let left1 = _interp_syntax(left, args);
                 let right1 = _interp_syntax(right, args);
-                Ok(comp(left1?, right1?, false, true))
+                Ok(comp(left1?, right1?, Pad::Unpadded, Break::Fixed))
             }
             Syntax::FixPadComp(left, right) => {
                 let left1 = _interp_syntax(left, args);
                 let right1 = _interp_syntax(right, args);
-                Ok(comp(left1?, right1?, true, true))
+                Ok(comp(left1?, right1?, Pad::Padded, Break::Fixed))
             }
         }
     }
