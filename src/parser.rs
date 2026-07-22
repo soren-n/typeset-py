@@ -239,6 +239,14 @@ mod tests {
     }
 
     #[test]
+    fn double_line_composition() {
+        assert_eq!(
+            parsed(r#""a" @@ "b""#),
+            r#"Line(Text("a"), Line(Null, Text("b")))"#
+        );
+    }
+
+    #[test]
     fn unpadded_composition() {
         assert_eq!(
             parsed(r#""a" & "b""#),

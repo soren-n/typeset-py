@@ -28,6 +28,10 @@ def test_parse_forced_linebreak() -> None:
     assert render(typeset.parse('"a" @ "b"')) == "a\nb"
 
 
+def test_parse_double_linebreak() -> None:
+    assert render(typeset.parse('"a" @@ "b"')) == "a\n\nb"
+
+
 def test_parse_fragment_substitution() -> None:
     layout = typeset.parse(
         "{0} + {1}", typeset.text("left"), typeset.text("right")
