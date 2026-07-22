@@ -1,6 +1,25 @@
 # typeset-py
 An embedded DSL for defining source code pretty printers.
 
+typeset-py is the Python binding for the [typeset](https://docs.rs/typeset)
+Rust crate.
+
+## Installation
+
+```sh
+pip install typeset-soren-n
+```
+
+The package installs the module `typeset`:
+
+```python
+import typeset
+
+layout = typeset.text('hello') + typeset.text('world')
+print(typeset.render(typeset.compile(layout), 2, 80))
+# hello world
+```
+
 ## Concept
 The layout language is designed such that it fits well over a structurally recursive pass of some inductive data-structure; an abstract representation of the thing you wish to pretty print.
 
@@ -8,10 +27,30 @@ A layout is a tree of text literals composed together with either padded, unpadd
 
 The solver being an abstract concept, is concretely implemented via two accompanying functions, a _compiler_ implemented as `compile`, and a _renderer_ implemented as `render`. Where the compiler takes a `Layout` and produces an immutable optimized layout called a `Document`. The renderer takes a `Document` along with arguments for indentation and buffer width, and produces the final text output.
 
+## Composition
+Layouts compose through four families of binary constructors:
+
+```python
+pad(left, right)        # "left right"  - separated by a space
+unpad(left, right)      # "leftright"   - no separation
+line(left, right)       # forced line-break between left and right
+fix_pad(left, right)    # padded, and never broken at the seam
+fix_unpad(left, right)  # unpadded, and never broken at the seam
+```
+
+The three most common compositions are also available as Python operators
+on `Layout`, mirroring the DSL syntax:
+
+```python
+a + b   # pad(a, b)
+a & b   # unpad(a, b)
+a @ b   # line(a, b)
+```
+
 ## Null constructor
 Sometimes in a data-structure there can be optional data (e.g. of type 'string option'), which when omitted should not have a layout. To make this case easy to handle, the `null` element of layout composition is available.
 
-```Python
+```python
 def layout_option(maybe_string: Optional[str]) -> Layout:
   match maybe_string:
     case None: return null()
@@ -19,12 +58,12 @@ def layout_option(maybe_string: Optional[str]) -> Layout:
 ```
 
 The `null` will be eliminated from the layout by the compiler, and will not be rendered, e.g:
-```Python
-foobar = comp(text('foo'), comp(null(), text('bar'), False, False), False, False)
+```python
+foobar = text('foo') & null() & text('bar')
 ```
 
 When rendering `foobar`, when the layout fits in the layout buffer, the result will be:
-```Text
+```text
        7
        |
 foobar |
@@ -33,18 +72,18 @@ foobar |
 
 ## Word literal constructor
 These are the visible terminals that we are typesetting.
-```Python
+```python
 foo = text('foo')
 ```
 When rendering `foo`, when the layout fits in the layout buffer, the result will be:
-```Text
+```text
     4
     |
 foo |
     |
 ```
 It will simply overflow the buffer when it does not:
-```Text
+```text
   2
   |
 fo|o
@@ -54,41 +93,41 @@ fo|o
 ## Fix constructor
 Sometimes you need to render a part of some layout as inline, i.e. that its compositions should not be broken; this is what the `fix` constructor is for. In other words a fixed layout is treated as a literal.
 
-```Python
-foobar = fix(comp(text('foo'), text('bar'), False, False))
+```python
+foobar = fix(text('foo') + text('bar'))
 ```
 
 When rendering the fixed layout `foobar`, when the layout fits in the layout buffer, the result will be:
-```Text
-       7
-       |
-foobar |
-       |
+```text
+        8
+        |
+foo bar |
+        |
 ```
 It will overflow the buffer when it does not:
-```Text
+```text
   2
   |
-fo|obar
+fo|o bar
   |
 ```
 
 ## Grp constructor
 The `grp` constructor prevents the solver from breaking its compositions, as long as there are compositions to the left of the group which could still be broken. This is useful when you need part of the layout to be treated as an item.
 
-```Python
-foobarbaz = comp(text('foo'), grp(comp(text('bar'), text('baz'), False, False)), False, False)
+```python
+foobarbaz = text('foo') & grp(text('bar') & text('baz'))
 ```
 
 When rendering `foobarbaz`, when the layout fits in the layout buffer, the result will be:
-```Text
+```text
           10
           |
 foobarbaz |
           |
 ```
 If one of the literals does not fit within the layout buffer, the result will be:
-```Text
+```text
        7
        |
 foo    |
@@ -96,7 +135,7 @@ barbaz |
        |
 ```
 In contrast, had the group not been annotated, the result would have been:
-```Text
+```text
        7
        |
 foobar |
@@ -104,7 +143,7 @@ baz    |
        |
 ```
 Since the composition between _bar_ and _baz_ was not guarded, and the layout solver is greedy and wants to fit as many literals on the same line as possible without overflowing the buffer. If the group still does not fit within the layout buffer, the group will be broken and the result will be:
-```Text
+```text
     4
     |
 foo |
@@ -116,12 +155,12 @@ baz |
 ## Seq constructor
 The `seq` constructor forces the solver to break all of its compositions as soon as one of them is broken. This is useful when you have data that is a sequence or is list-like in nature; when one item in the sequence is put on a new line, then so should the rest of the items in the sequence.
 
-```Python
-foobarbaz = seq(comp(text('foo'), comp(text('bar'), text('baz'), False, False), False, False))
+```python
+foobarbaz = seq(text('foo') & text('bar') & text('baz'))
 ```
 
 When rendering `foobarbaz`, when the layout fits in the layout buffer, the result will be:
-```Text
+```text
           10
           |
 foobarbaz |
@@ -141,19 +180,19 @@ Since the compositions were part of a sequence; i.e when one of them broke, they
 ## Nest constructor
 The `nest` constructor is simply there to provide an extra level of indentation for all literals that it ranges over. The width of each level of indentation is given as a parameter to the `render` function.
 
-```Python
-foobarbaz = comp(text('foo'), nest(comp(text('bar'), text('baz'), False, False)), False, False)
+```python
+foobarbaz = text('foo') & nest(text('bar') & text('baz'))
 ```
 
 When rendering `foobarbaz` with a indentation width of 2, when the layout fits in the layout buffer, the result will be:
-```Text
+```text
           10
           |
 foobarbaz |
           |
 ```
 If one of the literals does not fit within the layout buffer, the result will be;
-```Text
+```text
        7
        |
 foobar |
@@ -161,7 +200,7 @@ foobar |
        |
 ```
 And when the layout buffer will only hold one of the literals, the result will be:
-```Text
+```text
     4
     |
 foo |
@@ -174,19 +213,19 @@ In this case _bar_ and _baz_ will overflow the layout buffer because of the give
 ## Pack constructor
 The `pack` constructor defines an indentation level, but implicitly sets the indentation width to the index of the first literal in the layout it annotates. This is e.g. useful if you are pretty printing terms in a lisp-like language, where all other arguments to an application is often 'indented' to the same buffer index as the first argument.
 
-```Python
-foobarbaz = comp(text('foo'), pack(comp(text('bar'), text('baz'), False, False)), False, False)
+```python
+foobarbaz = text('foo') & pack(text('bar') & text('baz'))
 ```
 
 When rendering `foobarbaz`, when the layout fits in the layout buffer, the result will be:
-```Text
+```text
           10
           |
 foobarbaz |
           |
 ```
 When one of the literals do not fit, the result will be:
-```Text
+```text
        7
        |
 foobar |
@@ -194,7 +233,7 @@ foobar |
        |
 ```
 When the layout buffer will only hold one literal, the result will be:
-```Text
+```text
     4
     |
 foo |
@@ -203,7 +242,7 @@ baz |
     |
 ```
 The calculation of which buffer index to indent to is:
-```Python
+```python
 max((indent_level * indent_width), mark)
 ```
 I.e the mark index will only be chosen if it is greater than the current indentation.
@@ -211,12 +250,12 @@ I.e the mark index will only be chosen if it is greater than the current indenta
 ## Forced linebreak composition
 The forced linebreak composition does just that, it is a pre-broken composition.
 
-```Python
+```python
 foobar = line(text('foo'), text('bar'))
 ```
 
 When rendering `foobar`, whether or not the layout fits in the layout buffer, the result will be:
-```Text
+```text
         8
         |
 foo     |
@@ -224,67 +263,63 @@ bar     |
         |
 ```
 
-## Unpadded composition
-The unpadded composition will compose two layouts without any whitespace.
-
-```Python
-foobar = comp(text('foo'), text('bar'), False, False)
-```
-
-When rendering `foobar`, when the layout fits in the layout buffer, the result will be:
-```Text
-        8
-        |
-foobar  |
-        |
-```
-
-## Padded composition
-The padded composition will compose two layouts with whitespace.
-
-```Python
-foobar = comp(text('foo'), text('bar'), True, False)
-```
-
-When rendering `foobar`, when the layout fits in the layout buffer, the result will be:
-```Text
-        8
-        |
-foo bar |
-        |
-```
-
 ## Infix fixed compositions
-The infix fixed compositions are syntactic sugar for compositions where the leftmost literal of the left operand, and the rightmost literal of the right operand are fixed together. I.e. the two following layouts are equivalent:
+The infix fixed compositions are syntactic sugar for compositions where the rightmost literal of the left operand, and the leftmost literal of the right operand are fixed together. I.e. the two following layouts are equivalent:
 
-```Python
-foobarbaz1 = comp(text('foo'), comp(text('bar'), text('baz'), False, True), False, False)
-foobarbaz2 = comp(text('foo'), fix(comp(text('bar'), text('baz'), False, False)), False, False)
+```python
+foobarbaz1 = text('foo') + fix_unpad(text('bar'), text('baz'))
+foobarbaz2 = text('foo') + fix(text('bar') & text('baz'))
 ```
 
 The example above might make it seem trivial, and that infix fixed compositions do not give you much value; but remember that you are composing layouts, not just literals. As such normalising the infix fixed composition is actually quite challenging since there are many different cases to consider when the fix is 'sunk in place' in the layout tree; this is part of what the compiler is responsible for.
 
 Infix fixed compositions are useful when you need to fix a literal to the beginning or end of some other layout, e.g. separators between items in a sequence or list-like data structure. Without this feature you would again need to use an accumulator variable if you want to fix to the next literal, and probably need continuations if you want to fix to the last literal.
 
+## Convenience constructors
+A set of shorthands for common fragments and idioms:
+
+```python
+space()                        # text(' ')
+comma()                        # text(',')
+semicolon()                    # text(';')
+newline()                      # a bare linebreak
+blank_line()                   # two linebreaks, i.e. one blank line
+
+join_with(items, separator)    # items joined by separator (unpadded)
+join_with_spaces(items)        # 'a b c'
+join_with_commas(items)        # 'a, b, c'
+join_with_lines(items)         # one item per line
+
+parens(layout)                 # '(layout)'
+brackets(layout)               # '[layout]'
+braces(layout)                 # '{layout}'
+```
+
+For example a function call:
+
+```python
+call = text('f') & parens(join_with_commas([text('a'), text('b')]))
+# f(a, b)
+```
+
 ## Compiling the layout
 Your custom layout function (pretty printer) will build a layout, which you then need to compile and render:
-```Python
-...
+```python
 document = compile(layout)
 result = render(document, 2, 80)
 print(result)
-...
 ```
 I.e. the layout should be given to the compiler, which gives you back a document ready for rendering, which you in turn give to the renderer along with arguments for indentation width and layout buffer width; in the above case indentation width is 2 and the layout buffer width is 80.
 
 The reason for splitting the solver into `compile` and `render`, is in case the result is to be displayed in a buffer where the width is variable; i.e. you will not need to re-compile the layout between renderings using varying buffer width.
 
+For one-shot formatting there is also `format_layout(layout, 2, 80)`, which
+compiles and renders in a single call.
+
 ## DSL and parsing
 Additionally a small DSL has been defined, and a parser implemented, which allow you to write your layouts more succinctly (versus spelling out the full layout tree with the given constructors, which we've so far been doing throughout in this introduction!):
-```Python
-...
+```python
 layout = parse('{0} @ null @ {1}', fragment1, fragment2)
-...
 ```
 
 The full grammar is as such:
@@ -305,5 +340,12 @@ u + v     (Padded composition of layouts u and v)
 u !+ v    (Infix fixed padded composition of layouts u and v)
 ```
 
+Unary constructors stack (`fix grp u`) and bind tighter than the binary
+operators; all binary operators share one precedence level and associate to
+the right; parentheses group. See
+[docs/context/dsl-grammar.md](docs/context/dsl-grammar.md) for the full
+specification.
+
 ## Examples
-For some examples of how to put all these layout constructors together into something more complex and useful, please reference in the examples directory.
+The test suite in [tests/test_typeset.py](tests/test_typeset.py) doubles as a
+set of small, executable examples of every constructor and DSL form.

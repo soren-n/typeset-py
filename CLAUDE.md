@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-typeset-py is a Rust-based Python extension module that provides a DSL for defining source code pretty printers. It uses PyO3 to create Python bindings for high-performance Rust code.
+typeset-py is a Rust-based Python extension module that provides a DSL for defining source code pretty printers. It uses PyO3 to bind the upstream [typeset](https://docs.rs/typeset) crate; layout semantics live upstream, this repository owns the Python surface and the runtime DSL parser.
 
 ## Quick Start
 
@@ -12,59 +12,59 @@ typeset-py is a Rust-based Python extension module that provides a DSL for defin
 
 ```bash
 # Setup development environment
-uv venv && source .venv/bin/activate
-uv pip install pre-commit && pre-commit install
+uv venv && uv pip install maturin pytest pre-commit
 
 # Build and test
 maturin develop
-python -c "import typeset; print(typeset.render(typeset.compile(typeset.text('hello')), 2, 80))"
+pytest
 ```
 
 ## Essential Commands
 
 ```bash
 # Development workflow
-maturin develop              # Build extension for development
-cargo fmt && cargo clippy   # Format and lint Rust code
-pre-commit run --all-files  # Run all quality checks
+maturin develop              # Build extension into the venv
+cargo test                   # Rust parser unit tests
+pytest                       # Python end-to-end tests (build first)
+cargo fmt && cargo clippy    # Format and lint Rust code
+pre-commit run --all-files   # Run all quality checks
 
-# Release workflow
-maturin build --release     # Build optimized wheel
-cargo test                  # Run Rust tests
+# If cargo test fails to link libpython on macOS:
+PYO3_PYTHON=$PWD/.venv/bin/python cargo test
 ```
 
 ## Context Documentation
 
-For deep technical understanding, see the context documents in `docs/context/`:
-
-- **[architecture.md](docs/context/architecture.md)** - Project architecture, design patterns, two-phase compilation model, PyO3 integration patterns
-- **[dsl-grammar.md](docs/context/dsl-grammar.md)** - Complete DSL specification, Pest grammar, operator precedence, parsing implementation
-- **[build-system.md](docs/context/build-system.md)** - Maturin build system, dependency management, CI/CD pipeline, cross-platform builds
-- **[api-design.md](docs/context/api-design.md)** - PyO3 binding patterns, error handling, memory management, type system integration
-- **[development-workflow.md](docs/context/development-workflow.md)** - Pre-commit hooks, testing strategy, debugging, performance monitoring
+- **[architecture.md](docs/context/architecture.md)** - binding structure, two-phase compile/render model, conventions, testing
+- **[dsl-grammar.md](docs/context/dsl-grammar.md)** - DSL specification; the parser unit tests are its executable form
 
 ## Key Files
 
 - `src/lib.rs` - PyO3 bindings and Python API
-- `src/parser.rs` - DSL parser using Pest grammar
-- `src/layout.pest` - Grammar definition for DSL syntax
-- `typeset.pyi` - Python type stubs for IDE support
+- `src/parser.rs` - DSL parser (Pest + Pratt) and its unit tests
+- `src/layout.pest` - grammar definition for DSL syntax
+- `typeset.pyi` - Python type stubs; keyword names must match Rust parameter names
+- `tests/test_typeset.py` - end-to-end tests, doubling as API examples
 
 ## Dependencies
 
-- **Rust**: pyo3 0.29.0, typeset 4.0.0, pest 2.8.7
-- **Python**: >=3.9, maturin >=1.9 for building
-- **Development**: pre-commit, mypy, cargo audit
+- **Rust**: pyo3 0.29, typeset 4.0, pest 2.8.7; edition 2024, MSRV 1.89
+- **Python**: >=3.10, maturin >=1.9 for building
 
 ## DSL Quick Reference
 
 ```python
-# Basic syntax
 parse('"hello" + "world"')     # Padded composition: "hello world"
 parse('"a" & "b"')             # Unpadded: "ab"
 parse('"line1" @ "line2"')     # Line break
+parse('"a" @@ "b"')            # Double line break (one blank line)
 parse('fix ("a" + "b")')       # Fixed (no breaking)
 parse('nest {0}', content)     # Nested indentation
 ```
 
-See [dsl-grammar.md](docs/context/dsl-grammar.md) for complete specification.
+The same compositions exist as Python operators on Layout: `+` (padded), `&` (unpadded), `@` (line break).
+
+## Conventions
+
+- No backwards-compatibility shims and no fallback code paths; unreachable states are `unreachable!()`, user errors are typed Python exceptions.
+- Releases are cut by semantic-release from conventional commits; the version's single source of truth is `Cargo.toml` (exported as `typeset.__version__`).

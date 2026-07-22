@@ -1,162 +1,52 @@
-# Project Architecture
+# Architecture
 
-## Overview
+typeset-py is a thin PyO3 binding over the [typeset](https://docs.rs/typeset)
+Rust crate, plus a runtime parser for the layout DSL. All layout semantics
+(solving, compilation, rendering) live upstream; this repository owns only
+the Python surface and the DSL parser.
 
-typeset-py is a Rust-based Python extension that provides a Domain Specific Language (DSL) for pretty printing. The project uses PyO3 to create Python bindings for a high-performance Rust library.
-
-## Core Architecture
-
-### Two-Phase Compilation Model
-
-```
-Layout (AST) → compile() → Document (Optimized) → render() → String (Output)
-```
-
-1. **Layout Phase**: User constructs layout trees using constructors or DSL
-2. **Compilation Phase**: Layout is optimized into an immutable Document
-3. **Rendering Phase**: Document is rendered with specific width/indent parameters
-
-### Component Structure
+## Two-phase model
 
 ```
-src/lib.rs           # PyO3 bindings and Python API
-src/parser.rs        # DSL parser implementation
-src/layout.pest      # Pest grammar definition
-typeset.pyi          # Python type stubs
+Layout (tree) --compile()--> Document (immutable) --render(tab, width)--> str
 ```
 
-## Design Patterns
+Compile once, render at any number of widths. `format_layout` is the
+one-shot composition of the two.
 
-### Wrapper Pattern (PyO3 Integration)
+## Components
 
-```rust
-#[pyclass]
-struct Layout {
-    native: Box<native::Layout>,  // Wraps Rust native type
-}
+- `src/lib.rs` - the entire Python API: two frozen pyclasses (`Layout`,
+  `Document`) wrapping `Box<typeset::Layout>` / `Box<typeset::Doc>`, one
+  `#[pyfunction]` per upstream constructor, and the module init. Every
+  function delegates directly to the upstream crate; there is no logic here
+  beyond conversion.
+- `src/parser.rs` - runtime DSL parser. A Pest grammar produces a token
+  stream that a Pratt parser folds directly into `typeset::Layout` values;
+  `{i}` placeholders are substituted from the fragment arguments during the
+  fold. Errors are `String`s, surfaced to Python as `ValueError`.
+- `src/layout.pest` - the grammar. Ordered choices are longest-first
+  (PEG choice commits, so `@` must not shadow `@@`).
+- `typeset.pyi` - handwritten stubs; keyword names must match the Rust
+  parameter names exactly, which the pytest suite asserts.
 
-#[pyclass]
-struct Document {
-    native: Box<native::Doc>,     // Wraps Rust native type
-}
-```
+## Conventions
 
-**Key Principles:**
-- Python objects wrap Rust native types in `Box<T>`
-- All operations delegate to native Rust implementations
-- Error handling uses `PyResult<T>` for proper Python exception propagation
+- Layout values are immutable and cloned on use; Python-side reuse of a
+  layout (e.g. a shared separator) is expected and safe.
+- Match arms that the grammar makes unreachable are `unreachable!()`, not
+  error returns: a grammar/code disagreement is a bug and must fail loudly.
+- No fallback paths; user-facing failures are typed Python exceptions
+  (`ValueError` for parse errors, `TypeError` for wrong argument types).
+- The version has a single source of truth: `Cargo.toml`, exported to
+  Python as `typeset.__version__` at build time.
 
-### Builder Pattern (Layout Construction)
+## Testing
 
-Layout construction follows a functional builder pattern:
-
-```python
-# Compositional API
-layout = comp(
-    text("function"),
-    nest(comp(
-        text("("),
-        seq(args),
-        text(")")
-    ))
-)
-
-# DSL Alternative
-layout = parse('fix ("function" + nest ("(" + seq args + ")"))', args)
-```
-
-### Pratt Parser (Expression Parsing)
-
-The DSL uses a Pratt parser for handling operator precedence:
-
-```rust
-static ref PRATT_PARSER: PrattParser<Rule> = {
-    PrattParser::new()
-        .op(Op::infix(Rule::pad_comp_op, Right))      // + (padded composition)
-        .op(Op::infix(Rule::unpad_comp_op, Right))    // & (unpadded composition)
-        .op(Op::prefix(Rule::fix_op))                 // fix (fixed layout)
-        // ...
-};
-```
-
-## Memory Management
-
-### Rust Side
-- Uses `Box<T>` for heap allocation of layout trees
-- Leverages Rust's ownership system for memory safety
-- No manual memory management required
-
-### Python Side
-- PyO3 handles Python object lifecycle
-- Rust objects automatically cleaned up when Python objects are garbage collected
-- No memory leaks between language boundaries
-
-## Error Handling Strategy
-
-### Rust → Python Error Propagation
-
-```rust
-fn parse(input: String, args: &Bound<'_, PyTuple>) -> PyResult<Layout> {
-    // Rust Result<T, E> converts to PyResult<T>
-    Ok(Layout {
-        native: parser::parse(input.as_str(), &_args?)
-            .map_err(exceptions::PyValueError::new_err)?,  // Convert to Python exception
-    })
-}
-```
-
-### Error Types
-- **Parse Errors**: Invalid DSL syntax → `PyValueError`
-- **Index Errors**: Invalid template parameters → `PyValueError`
-- **Runtime Errors**: Rust panics become Python exceptions
-
-## Performance Characteristics
-
-### Compilation
-- Layout → Document compilation is O(n) where n = layout tree size
-- Document is immutable and optimized for repeated rendering
-
-### Rendering
-- Document → String rendering is O(m) where m = output text length
-- Greedy algorithm for line breaking decisions
-- No backtracking or complex optimization
-
-### Memory Usage
-- Layout trees: O(n) where n = number of constructors
-- Documents: O(n) optimized representation
-- Rendering: O(m) where m = output length
-
-## Thread Safety
-
-### Rust Components
-- All native types are `Send + Sync`
-- Immutable data structures after compilation
-- No shared mutable state
-
-### Python Integration
-- PyO3 handles GIL (Global Interpreter Lock) automatically
-- Safe to use from multiple Python threads
-- Rust computations can release GIL for better concurrency
-
-## Extension Points
-
-### Adding New Layout Constructors
-
-1. Add to native typeset library dependency
-2. Wrap in PyO3 function in `src/lib.rs`
-3. Add to module registration in `typeset()` function
-4. Update `typeset.pyi` with type signature
-
-### Extending DSL Grammar
-
-1. Add grammar rules to `src/layout.pest`
-2. Extend `Syntax` enum in `src/parser.rs`
-3. Add parsing logic in `_parse_syntax()`
-4. Add interpretation logic in `_interp_syntax()`
-
-### Performance Optimizations
-
-The two-phase model enables several optimizations:
-- **Compile once, render many**: Reuse Documents for different widths
-- **Lazy evaluation**: Only compute layouts that fit
-- **Memory sharing**: Immutable Documents can be shared safely
+- `cargo test` runs parser unit tests (the crate builds an rlib alongside
+  the cdylib for exactly this purpose; doctests are disabled due to the
+  module/upstream crate name collision).
+- `pytest` exercises the built extension end to end; build it first with
+  `maturin develop`.
+- On macOS, if `cargo test` fails to link libpython, point pyo3 at the
+  project venv: `PYO3_PYTHON=$PWD/.venv/bin/python cargo test`.
