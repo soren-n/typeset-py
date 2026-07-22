@@ -13,7 +13,7 @@ typeset-py uses a hybrid Rust-Python build system centered around Maturin for cr
 ```toml
 [build-system]
 build-backend = "maturin"
-requires = ["maturin>=1.8,<2.0"]
+requires = ["maturin>=1.9,<2.0"]
 
 [tool.maturin]
 features = ["pyo3/extension-module"]
@@ -41,7 +41,6 @@ uv pip install target/wheels/*   # Install from wheel
 ```toml
 [package]
 name = "typeset-py"
-version = "2.0.8"
 edition = "2021"
 
 [lib]
@@ -49,8 +48,8 @@ name = "typeset"
 crate-type = ["cdylib"]  # Required for Python extension
 
 [dependencies]
-pyo3 = "0.25.1"
-typeset = "3.1.0"
+pyo3 = "0.29.0"
+typeset = "4.0.0"
 # ...
 ```
 
@@ -59,11 +58,11 @@ typeset = "3.1.0"
 ### Rust Dependencies
 
 **Core Dependencies**:
-- `pyo3 = "0.25.1"` - Python bindings
-- `pyo3-log = "0.12.4"` - Logging bridge
-- `typeset = "3.1.0"` - Core layout library
-- `pest = "2.8.1"` - Parser generator
-- `pest_derive = "2.8.1"` - Pest derive macros
+- `pyo3 = "0.29.0"` - Python bindings
+- `pyo3-log = "0.13.4"` - Logging bridge
+- `typeset = "4.0.0"` - Core layout library
+- `pest = "2.8.7"` - Parser generator
+- `pest_derive = "2.8.7"` - Pest derive macros
 - `lazy_static = "1.5.0"` - Global static initialization
 
 **Dependency Updates**:
@@ -76,7 +75,7 @@ cargo tree                     # View dependency tree
 ### Python Dependencies
 
 **Build Requirements**:
-- `maturin>=1.8,<2.0` - Build system
+- `maturin>=1.9,<2.0` - Build system
 - `pre-commit` - Git hooks (development)
 - `mypy` - Type checking (development)
 
@@ -160,7 +159,7 @@ pre-commit run --all-files  # Run manually
 4. **Release**: Publish to PyPI on tags (if configured)
 
 ### Test Matrix
-- **Python versions**: 3.8, 3.9, 3.10, 3.11, 3.12
+- **Python versions**: 3.9+
 - **Platforms**: Linux, macOS, Windows
 - **Architectures**: x86_64, aarch64, etc.
 

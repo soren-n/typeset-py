@@ -45,15 +45,15 @@ For deep technical understanding, see the context documents in `docs/context/`:
 
 ## Key Files
 
-- `src/lib.rs` - PyO3 bindings and Python API (166 lines)
-- `src/parser.rs` - DSL parser using Pest grammar (192 lines)
+- `src/lib.rs` - PyO3 bindings and Python API
+- `src/parser.rs` - DSL parser using Pest grammar
 - `src/layout.pest` - Grammar definition for DSL syntax
 - `typeset.pyi` - Python type stubs for IDE support
 
 ## Dependencies
 
-- **Rust**: pyo3 0.25.1, typeset 3.1.0, pest 2.8.1
-- **Python**: >=3.8, maturin >=1.8 for building
+- **Rust**: pyo3 0.29.0, typeset 4.0.0, pest 2.8.7
+- **Python**: >=3.9, maturin >=1.9 for building
 - **Development**: pre-commit, mypy, cargo audit
 
 ## DSL Quick Reference

@@ -82,8 +82,10 @@ fn text(data: String) -> PyResult<Layout> {
 
 #[pyfunction]
 fn comp(left: Layout, right: Layout, pad: bool, fix: bool) -> PyResult<Layout> {
+    let pad = if pad { Pad::Padded } else { Pad::Unpadded };
+    let brk = if fix { Break::Fixed } else { Break::Breakable };
     Ok(Layout {
-        native: native::comp(left.native, right.native, pad, fix),
+        native: native::comp(left.native, right.native, pad, brk),
     })
 }
 ```
@@ -116,14 +118,14 @@ layout = parse("{0} + {1}", text("hello"), text("world"))
 #[pymethods]
 impl Layout {
     fn __repr__(&self) -> String {
-        format!("{}", self.native)  // Delegate to Rust Display trait
+        format!("{:?}", self.native)  // Delegate to Rust Debug trait
     }
 }
 
 #[pymethods]
 impl Document {
     fn __repr__(&self) -> String {
-        format!("{}", self.native)
+        format!("{:?}", self.native)
     }
 }
 ```

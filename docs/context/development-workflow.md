@@ -4,7 +4,7 @@
 
 ### Prerequisites
 - **Rust**: Latest stable (2021 edition)
-- **Python**: 3.8+ (3.11 recommended)
+- **Python**: 3.9+ (3.12 recommended)
 - **UV**: Fast Python package manager (preferred)
 - **Git**: Version control with pre-commit hooks
 
@@ -219,7 +219,7 @@ use typeset_py::*;
 fn test_full_pipeline() {
     let layout = text("test".to_string());
     let doc = compile(layout);
-    let result = render(doc, 2, 80);
+    let result = render(&doc, 2, 80);
     assert_eq!(result, "test");
 }
 ```
@@ -372,7 +372,7 @@ valgrind --tool=memcheck python test_script.py
 **Quality Gates**:
 1. **Code Quality**: All pre-commit hooks pass
 2. **Cross-platform Builds**: Linux, macOS, Windows
-3. **Multi-python Testing**: Python 3.8-3.12
+3. **Multi-python Testing**: Python 3.9+
 4. **Security Scanning**: Cargo audit passes
 5. **Documentation**: Builds without warnings
 
