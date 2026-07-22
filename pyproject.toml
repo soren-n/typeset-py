@@ -30,6 +30,9 @@ repository = "https://github.com/soren-n/typeset-py"
 [tool.maturin]
 features = ["pyo3/extension-module"]
 
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
 [tool.semantic_release]
 build_command = "maturin build --release"
 changelog_sections = "feature,fix,breaking,documentation,performance"

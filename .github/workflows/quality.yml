@@ -21,6 +21,12 @@ jobs:
         with:
           components: rustfmt, clippy
 
+      # cargo test links against libpython, so a shared-library Python is needed
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.x'
+
       - name: Rust Cache
         uses: Swatinem/rust-cache@v2.9.1
 
@@ -65,18 +71,17 @@ jobs:
         run: |
           uv venv
           source .venv/bin/activate
-          uv pip install "maturin>=1.9"
+          uv pip install "maturin>=1.9" pytest
 
       - name: Build extension
         run: |
           source .venv/bin/activate
           maturin develop
 
-      - name: Test Python imports
+      - name: Run Python tests
         run: |
           source .venv/bin/activate
-          python -c "import typeset; print('Import successful')"
-          python -c "import typeset; print(typeset.render(typeset.compile(typeset.text('hello')), 2, 80))"
+          pytest
 
   pre-commit:
     name: Pre-commit Hooks

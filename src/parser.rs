@@ -191,3 +191,172 @@ pub fn parse(input: &str, args: &[Box<Layout>]) -> Result<Box<Layout>, String> {
         Err(error) => Err(format!("{}", error)),
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::parse;
+    use typeset::text;
+
+    fn parsed(input: &str) -> String {
+        format!("{:?}", parse(input, &[]).unwrap())
+    }
+
+    fn parse_err(input: &str) -> String {
+        parse(input, &[]).unwrap_err()
+    }
+
+    #[test]
+    fn null_literal() {
+        assert_eq!(parsed("null"), "Null");
+    }
+
+    #[test]
+    fn text_literal() {
+        assert_eq!(parsed(r#""hello""#), r#"Text("hello")"#);
+    }
+
+    #[test]
+    fn empty_text_literal() {
+        assert_eq!(parsed(r#""""#), r#"Text("")"#);
+    }
+
+    #[test]
+    fn escape_sequences() {
+        assert_eq!(
+            parsed(r#""a\nb\rc\td\\e\0f\"g\'h""#),
+            "Text(\"a\\nb\\rc\\td\\\\e\\0f\\\"g'h\")"
+        );
+    }
+
+    #[test]
+    fn invalid_escape_is_rejected() {
+        parse_err(r#""\q""#);
+    }
+
+    #[test]
+    fn single_line_composition() {
+        assert_eq!(parsed(r#""a" @ "b""#), r#"Line(Text("a"), Text("b"))"#);
+    }
+
+    #[test]
+    fn unpadded_composition() {
+        assert_eq!(
+            parsed(r#""a" & "b""#),
+            r#"Comp(Text("a"), Text("b"), Attr { pad: Unpadded, brk: Breakable })"#
+        );
+    }
+
+    #[test]
+    fn padded_composition() {
+        assert_eq!(
+            parsed(r#""a" + "b""#),
+            r#"Comp(Text("a"), Text("b"), Attr { pad: Padded, brk: Breakable })"#
+        );
+    }
+
+    #[test]
+    fn fixed_unpadded_composition() {
+        assert_eq!(
+            parsed(r#""a" !& "b""#),
+            r#"Comp(Text("a"), Text("b"), Attr { pad: Unpadded, brk: Fixed })"#
+        );
+    }
+
+    #[test]
+    fn fixed_padded_composition() {
+        assert_eq!(
+            parsed(r#""a" !+ "b""#),
+            r#"Comp(Text("a"), Text("b"), Attr { pad: Padded, brk: Fixed })"#
+        );
+    }
+
+    #[test]
+    fn binary_operators_are_right_associative() {
+        assert_eq!(
+            parsed(r#""a" + "b" + "c""#),
+            concat!(
+                r#"Comp(Text("a"), Comp(Text("b"), Text("c"), "#,
+                r#"Attr { pad: Padded, brk: Breakable }), "#,
+                r#"Attr { pad: Padded, brk: Breakable })"#
+            )
+        );
+    }
+
+    #[test]
+    fn parentheses_override_associativity() {
+        assert_eq!(
+            parsed(r#"("a" + "b") + "c""#),
+            concat!(
+                r#"Comp(Comp(Text("a"), Text("b"), "#,
+                r#"Attr { pad: Padded, brk: Breakable }), Text("c"), "#,
+                r#"Attr { pad: Padded, brk: Breakable })"#
+            )
+        );
+    }
+
+    #[test]
+    fn unary_operators() {
+        assert_eq!(parsed(r#"fix "a""#), r#"Fix(Text("a"))"#);
+        assert_eq!(parsed(r#"grp "a""#), r#"Grp(Text("a"))"#);
+        assert_eq!(parsed(r#"seq "a""#), r#"Seq(Text("a"))"#);
+        assert_eq!(parsed(r#"nest "a""#), r#"Nest(Text("a"))"#);
+        assert_eq!(parsed(r#"pack "a""#), r#"Pack(Text("a"))"#);
+    }
+
+    #[test]
+    fn unary_operator_over_parenthesized_expression() {
+        assert_eq!(
+            parsed(r#"fix ("a" + "b")"#),
+            r#"Fix(Comp(Text("a"), Text("b"), Attr { pad: Padded, brk: Breakable }))"#
+        );
+    }
+
+    #[test]
+    fn unary_binds_tighter_than_binary() {
+        assert_eq!(
+            parsed(r#"fix "a" + "b""#),
+            r#"Comp(Fix(Text("a")), Text("b"), Attr { pad: Padded, brk: Breakable })"#
+        );
+    }
+
+    #[test]
+    fn index_substitution() {
+        let args = [text("left"), text("right")];
+        assert_eq!(
+            format!("{:?}", parse("{0} + {1}", &args).unwrap()),
+            r#"Comp(Text("left"), Text("right"), Attr { pad: Padded, brk: Breakable })"#
+        );
+    }
+
+    #[test]
+    fn index_reuse() {
+        let args = [text("x")];
+        assert_eq!(
+            format!("{:?}", parse("{0} & {0}", &args).unwrap()),
+            r#"Comp(Text("x"), Text("x"), Attr { pad: Unpadded, brk: Breakable })"#
+        );
+    }
+
+    #[test]
+    fn whitespace_is_insignificant() {
+        assert_eq!(
+            parsed("\"a\"\n\t+ \"b\""),
+            r#"Comp(Text("a"), Text("b"), Attr { pad: Padded, brk: Breakable })"#
+        );
+    }
+
+    #[test]
+    fn unterminated_string_is_rejected() {
+        parse_err(r#""unterminated"#);
+    }
+
+    #[test]
+    fn empty_input_is_rejected() {
+        parse_err("");
+    }
+
+    #[test]
+    fn trailing_operator_is_rejected() {
+        parse_err(r#""a" +"#);
+    }
+}
