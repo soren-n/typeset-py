@@ -25,4 +25,4 @@ readme = "README.md"
 repository = "https://github.com/soren-n/typeset-py"
 # matches the MSRV of the typeset dependency
 rust-version = "1.89"
-version = "2.1.7"
+version = "3.0.0"
