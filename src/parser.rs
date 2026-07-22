@@ -1,11 +1,11 @@
 use std::sync::LazyLock;
 
+use pest::Parser;
 use pest::iterators::{Pair, Pairs};
 use pest::pratt_parser::{Assoc, Op, PrattParser};
-use pest::Parser;
 use pest_derive::Parser;
 
-use typeset::{comp, fix, grp, line, nest, null, pack, seq, text, Break, Layout, Pad};
+use typeset::{Break, Layout, Pad, comp, fix, grp, line, nest, null, pack, seq, text};
 
 #[derive(Parser)]
 #[grammar = "layout.pest"]

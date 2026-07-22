@@ -27,12 +27,9 @@ repos:
         files: \.rs$
         pass_filenames: false
 
-  # NOTE: cargo clippy / test / audit are intentionally NOT pre-commit hooks.
-  # They are enforced by the dedicated "Rust Quality Checks" job in
-  # .github/workflows/quality.yml. Running them under pre-commit caused
-  # spurious failures: semantic-release bumps Cargo.toml on every push
-  # without updating Cargo.lock, so cargo would regenerate the lock and
-  # pre-commit fails any hook that modifies a tracked file.
+  # NOTE: cargo clippy / test / audit are intentionally NOT pre-commit hooks;
+  # they are too slow for a commit hook and are enforced by the "Rust Quality
+  # Checks" job in .github/workflows/quality.yml instead.
 
   # Python type checking for .pyi files
   - repo: https://github.com/pre-commit/mirrors-mypy

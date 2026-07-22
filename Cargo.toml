@@ -17,11 +17,13 @@ authors = ["Soren Norbaek <sorennorbaek@gmail.com>"]
 categories = ["compilers", "template-engine"]
 description = "A DSL for defining source code pretty printers"
 documentation = "https://docs.rs/typeset/latest/typeset/"
-edition = "2021"
+edition = "2024"
 homepage = "https://docs.rs/typeset/latest/typeset/"
 keywords = ["dsl", "pretty", "printer"]
 license-file = "LICENSE"
 name = "typeset-py"
 readme = "README.md"
 repository = "https://github.com/soren-n/typeset-py"
+# matches the MSRV of the typeset dependency
+rust-version = "1.89"
 version = "2.1.7"
