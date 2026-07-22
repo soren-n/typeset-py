@@ -2,7 +2,6 @@
 pest = "2.8.7"
 pest_derive = "2.8.7"
 pyo3 = "0.29.0"
-pyo3-log = "0.13.4"
 typeset = "4.0.0"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html

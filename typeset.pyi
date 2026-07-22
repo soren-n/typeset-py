@@ -1,31 +1,45 @@
-__version__ = "2.1.7"
+__version__: str
 
 class Layout:
     """
-    A class representing a Layout.
-    Can only be instanced via the packaged constructors.
+    An unsolved layout tree.
+
+    Instances are created via the module's constructor functions and
+    composed with those functions or with the operators below.
     """
+
+    def __add__(self, other: Layout) -> Layout:
+        """Padded composition, equivalent to pad(self, other)."""
+
+    def __and__(self, other: Layout) -> Layout:
+        """Unpadded composition, equivalent to unpad(self, other)."""
+
+    def __matmul__(self, other: Layout) -> Layout:
+        """Forced linebreak composition, equivalent to line(self, other)."""
 
 class Document:
     """
-    A class representing a Document.
-    Can only be instanced via the compile constructor.
+    A compiled, render-ready document.
+
+    Instances are created via the compile function.
     """
 
 def null() -> Layout:
     """
-    Construct a null layout.
+    Construct the empty layout.
+
+    Null layouts are eliminated by the compiler and render to nothing.
 
     Returns:
-        A null layout.
+        The empty layout.
     """
 
 def text(data: str) -> Layout:
     """
-    Construct a text layout.
+    Construct a text layout: an atomic word literal.
 
     Args:
-        data: string to be wrapped and treated as an atomic layout unit.
+        data: string to be treated as an atomic layout unit.
 
     Returns:
         A text layout.
@@ -33,10 +47,10 @@ def text(data: str) -> Layout:
 
 def fix(layout: Layout) -> Layout:
     """
-    Construct a fixed layout.
+    Construct a fixed layout: its compositions are never broken.
 
     Args:
-        layout: a layout to be wrapped.
+        layout: the layout to fix.
 
     Returns:
         A fixed layout.
@@ -44,21 +58,23 @@ def fix(layout: Layout) -> Layout:
 
 def grp(layout: Layout) -> Layout:
     """
-    Construct a grouped layout.
+    Construct a grouped layout: it does not break while compositions to
+    its left can still be broken.
 
     Args:
-        layout: a layout to be wrapped.
+        layout: the layout to group.
 
     Returns:
-        A grouped layout
+        A grouped layout.
     """
 
 def seq(layout: Layout) -> Layout:
     """
-    Construct a sequenced layout.
+    Construct a sequenced layout: if one of its compositions breaks,
+    they all break.
 
     Args:
-        layout: a layout to be wrapped.
+        layout: the layout to sequence.
 
     Returns:
         A sequenced layout.
@@ -66,10 +82,11 @@ def seq(layout: Layout) -> Layout:
 
 def nest(layout: Layout) -> Layout:
     """
-    Construct a nested layout.
+    Construct a nested layout: one extra level of indentation for the
+    literals it ranges over.
 
     Args:
-        layout: a layout to be wrapped.
+        layout: the layout to nest.
 
     Returns:
         A nested layout.
@@ -77,10 +94,11 @@ def nest(layout: Layout) -> Layout:
 
 def pack(layout: Layout) -> Layout:
     """
-    Construct a packed layout.
+    Construct a packed layout: indentation aligned to the buffer index
+    of its first literal.
 
     Args:
-        layout: a layout to be wrapped.
+        layout: the layout to pack.
 
     Returns:
         A packed layout.
@@ -88,73 +106,237 @@ def pack(layout: Layout) -> Layout:
 
 def line(left: Layout, right: Layout) -> Layout:
     """
-    Construct a forced line break layout composition.
+    Compose two layouts with a forced linebreak.
 
     Args:
-        left: a layout to be composed on the left hand side.
-        right: a layout to be composed on the right hand side.
+        left: the layout left of the break.
+        right: the layout right of the break.
 
     Returns:
-        A forced line break composed layout.
+        The composed layout.
     """
 
-def comp(left: Layout, right: Layout, padded: bool, fixed: bool) -> Layout:
+def pad(left: Layout, right: Layout) -> Layout:
     """
-    Construct a potentially padded and fixed layout composition.
+    Compose two layouts separated by a space.
 
     Args:
-        left: a layout to be composed on the left hand side..
-        right: a layout to be composed on the right hand side..
-        padded: padding state.
-        fixed: fixed state.
+        left: the left-hand layout.
+        right: the right-hand layout.
 
     Returns:
-        A potentially padded and fixed composed layout.
+        The composed layout.
     """
 
-def print(doc: Document) -> str:
+def unpad(left: Layout, right: Layout) -> Layout:
     """
-    Format a document's debug representation as a string.
+    Compose two layouts with no separation.
 
     Args:
-        doc: a document to be formatted.
+        left: the left-hand layout.
+        right: the right-hand layout.
 
     Returns:
-        A debug representation of the document as a string.
+        The composed layout.
+    """
+
+def fix_pad(left: Layout, right: Layout) -> Layout:
+    """
+    Compose two layouts separated by a space, fixed at the seam: the
+    adjacent literals never break apart.
+
+    Args:
+        left: the left-hand layout.
+        right: the right-hand layout.
+
+    Returns:
+        The composed layout.
+    """
+
+def fix_unpad(left: Layout, right: Layout) -> Layout:
+    """
+    Compose two layouts with no separation, fixed at the seam: the
+    adjacent literals never break apart.
+
+    Args:
+        left: the left-hand layout.
+        right: the right-hand layout.
+
+    Returns:
+        The composed layout.
+    """
+
+def space() -> Layout:
+    """
+    A single space; equivalent to text(" ").
+
+    Returns:
+        A space layout.
+    """
+
+def comma() -> Layout:
+    """
+    A comma; equivalent to text(",").
+
+    Returns:
+        A comma layout.
+    """
+
+def semicolon() -> Layout:
+    """
+    A semicolon; equivalent to text(";").
+
+    Returns:
+        A semicolon layout.
+    """
+
+def newline() -> Layout:
+    """
+    A linebreak with no content on either side.
+
+    Returns:
+        A linebreak layout.
+    """
+
+def blank_line() -> Layout:
+    """
+    Two consecutive linebreaks, producing one blank line.
+
+    Returns:
+        A blank-line layout.
+    """
+
+def join_with(layouts: list[Layout], separator: Layout) -> Layout:
+    """
+    Join layouts with a separator between each pair, using unpadded
+    compositions (the separator supplies its own spacing).
+
+    Args:
+        layouts: the layouts to join; an empty list yields null().
+        separator: the separator layout.
+
+    Returns:
+        The joined layout.
+    """
+
+def join_with_spaces(layouts: list[Layout]) -> Layout:
+    """
+    Join layouts with single spaces.
+
+    Args:
+        layouts: the layouts to join; an empty list yields null().
+
+    Returns:
+        The joined layout.
+    """
+
+def join_with_commas(layouts: list[Layout]) -> Layout:
+    """
+    Join layouts with ", " separators.
+
+    Args:
+        layouts: the layouts to join; an empty list yields null().
+
+    Returns:
+        The joined layout.
+    """
+
+def join_with_lines(layouts: list[Layout]) -> Layout:
+    """
+    Join layouts with forced linebreaks, one element per line.
+
+    Args:
+        layouts: the layouts to join; an empty list yields null().
+
+    Returns:
+        The joined layout.
+    """
+
+def parens(layout: Layout) -> Layout:
+    """
+    Wrap a layout in parentheses with no introduced spacing.
+
+    Args:
+        layout: the layout to wrap.
+
+    Returns:
+        The wrapped layout.
+    """
+
+def brackets(layout: Layout) -> Layout:
+    """
+    Wrap a layout in square brackets with no introduced spacing.
+
+    Args:
+        layout: the layout to wrap.
+
+    Returns:
+        The wrapped layout.
+    """
+
+def braces(layout: Layout) -> Layout:
+    """
+    Wrap a layout in curly braces with no introduced spacing.
+
+    Args:
+        layout: the layout to wrap.
+
+    Returns:
+        The wrapped layout.
     """
 
 def compile(layout: Layout) -> Document:
     """
-    Compile a layout to construct a document.
+    Compile a layout into a document.
 
     Args:
-        layout: a layout to be compiled.
+        layout: the layout to compile.
 
     Returns:
-        A compiled document.
+        The compiled document.
     """
 
-def render(document: Document, indent: int, width: int) -> str:
+def render(document: Document, tab: int, width: int) -> str:
     """
-    Render a document to a string with a given indent and line width.
+    Render a document to a string.
 
     Args:
-        document: a document to be rendered.
-        indent: the indent width to be rendered with.
-        width: the line width to be rendered with.
+        document: the document to render.
+        tab: the number of spaces per indentation level.
+        width: the target line width for breaking decisions.
 
     Returns:
-        A rendered document as a string.
+        The rendered output.
     """
 
-def parse(input: str, *args: Layout) -> Layout:
+def format_layout(layout: Layout, tab: int, width: int) -> str:
     """
-    Parse a typeset DSL script to construct a layout.
+    Compile and render a layout in one step.
+
+    To format the same layout repeatedly at different widths, prefer
+    compile once and render per call.
 
     Args:
-        input: a typeset DSL script to be parsed.
-        args: the arguments to be inserted in case of layout parameters.
+        layout: the layout to format.
+        tab: the number of spaces per indentation level.
+        width: the target line width for breaking decisions.
 
     Returns:
-        A layout representing the given DSL script.
+        The rendered output.
+    """
+
+def parse(input: str, *fragments: Layout) -> Layout:
+    """
+    Parse a typeset DSL script into a layout.
+
+    Args:
+        input: the DSL script to parse.
+        fragments: layouts substituted for {i} placeholders by index.
+
+    Returns:
+        The parsed layout.
+
+    Raises:
+        ValueError: if the script does not parse or a fragment index is
+            out of range.
     """

@@ -1,15 +1,22 @@
-use pyo3::exceptions;
+use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
 use pyo3::types::PyTuple;
 
-use ::typeset::{self as native, Break, Pad};
+use ::typeset as native;
 
 mod parser;
 
-#[pyclass(from_py_object)]
-#[derive(Debug, Clone)]
+/// An unsolved layout tree; built via the module's constructor functions.
+#[pyclass(frozen, from_py_object)]
+#[derive(Clone)]
 struct Layout {
     native: Box<native::Layout>,
+}
+
+impl Layout {
+    fn wrap(native: Box<native::Layout>) -> Self {
+        Layout { native }
+    }
 }
 
 #[pymethods]
@@ -17,10 +24,25 @@ impl Layout {
     fn __repr__(&self) -> String {
         format!("{:?}", self.native)
     }
+
+    /// `left + right`: padded composition, equivalent to `pad(left, right)`.
+    fn __add__(&self, other: &Layout) -> Layout {
+        Layout::wrap(native::pad(self.native.clone(), other.native.clone()))
+    }
+
+    /// `left & right`: unpadded composition, equivalent to `unpad(left, right)`.
+    fn __and__(&self, other: &Layout) -> Layout {
+        Layout::wrap(native::unpad(self.native.clone(), other.native.clone()))
+    }
+
+    /// `left @ right`: forced linebreak, equivalent to `line(left, right)`.
+    fn __matmul__(&self, other: &Layout) -> Layout {
+        Layout::wrap(native::line(self.native.clone(), other.native.clone()))
+    }
 }
 
-#[pyclass(from_py_object)]
-#[derive(Debug, Clone)]
+/// A compiled, render-ready document.
+#[pyclass(frozen)]
 struct Document {
     native: Box<native::Doc>,
 }
@@ -33,134 +55,195 @@ impl Document {
 }
 
 #[pyfunction]
-fn null() -> PyResult<Layout> {
-    Ok(Layout {
-        native: native::null(),
-    })
+fn null() -> Layout {
+    Layout::wrap(native::null())
 }
 
 #[pyfunction]
-fn text(data: String) -> PyResult<Layout> {
-    Ok(Layout {
-        native: native::text(data),
-    })
+fn text(data: String) -> Layout {
+    Layout::wrap(native::text(data))
 }
 
 #[pyfunction]
-fn fix(layout: Layout) -> PyResult<Layout> {
-    Ok(Layout {
-        native: native::fix(layout.native),
-    })
+fn fix(layout: Layout) -> Layout {
+    Layout::wrap(native::fix(layout.native))
 }
 
 #[pyfunction]
-fn grp(layout: Layout) -> PyResult<Layout> {
-    Ok(Layout {
-        native: native::grp(layout.native),
-    })
+fn grp(layout: Layout) -> Layout {
+    Layout::wrap(native::grp(layout.native))
 }
 
 #[pyfunction]
-fn seq(layout: Layout) -> PyResult<Layout> {
-    Ok(Layout {
-        native: native::seq(layout.native),
-    })
+fn seq(layout: Layout) -> Layout {
+    Layout::wrap(native::seq(layout.native))
 }
 
 #[pyfunction]
-fn nest(layout: Layout) -> PyResult<Layout> {
-    Ok(Layout {
-        native: native::nest(layout.native),
-    })
+fn nest(layout: Layout) -> Layout {
+    Layout::wrap(native::nest(layout.native))
 }
 
 #[pyfunction]
-fn pack(layout: Layout) -> PyResult<Layout> {
-    Ok(Layout {
-        native: native::pack(layout.native),
-    })
+fn pack(layout: Layout) -> Layout {
+    Layout::wrap(native::pack(layout.native))
 }
 
 #[pyfunction]
-fn line(left: Layout, right: Layout) -> PyResult<Layout> {
-    Ok(Layout {
-        native: native::line(left.native, right.native),
-    })
+fn line(left: Layout, right: Layout) -> Layout {
+    Layout::wrap(native::line(left.native, right.native))
 }
 
 #[pyfunction]
-fn comp(left: Layout, right: Layout, pad: bool, fix: bool) -> PyResult<Layout> {
-    let pad = if pad { Pad::Padded } else { Pad::Unpadded };
-    let brk = if fix { Break::Fixed } else { Break::Breakable };
-    Ok(Layout {
-        native: native::comp(left.native, right.native, pad, brk),
-    })
+fn pad(left: Layout, right: Layout) -> Layout {
+    Layout::wrap(native::pad(left.native, right.native))
 }
 
 #[pyfunction]
-fn print(doc: Document) -> PyResult<String> {
-    Ok(format!("{:?}", doc.native))
+fn unpad(left: Layout, right: Layout) -> Layout {
+    Layout::wrap(native::unpad(left.native, right.native))
 }
 
 #[pyfunction]
-fn compile(layout: Layout) -> PyResult<Document> {
-    Ok(Document {
+fn fix_pad(left: Layout, right: Layout) -> Layout {
+    Layout::wrap(native::fix_pad(left.native, right.native))
+}
+
+#[pyfunction]
+fn fix_unpad(left: Layout, right: Layout) -> Layout {
+    Layout::wrap(native::fix_unpad(left.native, right.native))
+}
+
+#[pyfunction]
+fn space() -> Layout {
+    Layout::wrap(native::space())
+}
+
+#[pyfunction]
+fn comma() -> Layout {
+    Layout::wrap(native::comma())
+}
+
+#[pyfunction]
+fn semicolon() -> Layout {
+    Layout::wrap(native::semicolon())
+}
+
+#[pyfunction]
+fn newline() -> Layout {
+    Layout::wrap(native::newline())
+}
+
+#[pyfunction]
+fn blank_line() -> Layout {
+    Layout::wrap(native::blank_line())
+}
+
+#[pyfunction]
+fn join_with(layouts: Vec<Layout>, separator: Layout) -> Layout {
+    Layout::wrap(native::join_with(
+        layouts.into_iter().map(|layout| layout.native).collect(),
+        separator.native,
+    ))
+}
+
+#[pyfunction]
+fn join_with_spaces(layouts: Vec<Layout>) -> Layout {
+    Layout::wrap(native::join_with_spaces(
+        layouts.into_iter().map(|layout| layout.native).collect(),
+    ))
+}
+
+#[pyfunction]
+fn join_with_commas(layouts: Vec<Layout>) -> Layout {
+    Layout::wrap(native::join_with_commas(
+        layouts.into_iter().map(|layout| layout.native).collect(),
+    ))
+}
+
+#[pyfunction]
+fn join_with_lines(layouts: Vec<Layout>) -> Layout {
+    Layout::wrap(native::join_with_lines(
+        layouts.into_iter().map(|layout| layout.native).collect(),
+    ))
+}
+
+#[pyfunction]
+fn parens(layout: Layout) -> Layout {
+    Layout::wrap(native::parens(layout.native))
+}
+
+#[pyfunction]
+fn brackets(layout: Layout) -> Layout {
+    Layout::wrap(native::brackets(layout.native))
+}
+
+#[pyfunction]
+fn braces(layout: Layout) -> Layout {
+    Layout::wrap(native::braces(layout.native))
+}
+
+#[pyfunction]
+fn compile(layout: Layout) -> Document {
+    Document {
         native: native::compile(layout.native),
-    })
+    }
 }
 
 #[pyfunction]
-fn render(doc: Document, tab: usize, width: usize) -> PyResult<String> {
-    Ok(native::render(&doc.native, tab, width))
+fn render(document: &Document, tab: usize, width: usize) -> String {
+    native::render(&document.native, tab, width)
 }
 
 #[pyfunction]
-#[pyo3(signature = (input, *args))]
-fn parse(input: String, args: &Bound<'_, PyTuple>) -> PyResult<Layout> {
-    let _args: Result<Vec<Box<native::Layout>>, PyErr> = args
+fn format_layout(layout: Layout, tab: usize, width: usize) -> String {
+    native::format_layout(layout.native, tab, width)
+}
+
+#[pyfunction]
+#[pyo3(signature = (input, *fragments))]
+fn parse(input: &str, fragments: &Bound<'_, PyTuple>) -> PyResult<Layout> {
+    let fragments = fragments
         .iter()
-        .map(
-            |layout: Bound<'_, PyAny>| -> Result<Box<native::Layout>, PyErr> {
-                Ok(layout.extract::<Layout>()?.native)
-            },
-        )
-        .collect();
-    Ok(Layout {
-        native: parser::parse(input.as_str(), &_args?)
-            .map_err(exceptions::PyValueError::new_err)?,
-    })
+        .map(|fragment| Ok(fragment.extract::<Layout>()?.native))
+        .collect::<PyResult<Vec<_>>>()?;
+    parser::parse(input, &fragments)
+        .map(Layout::wrap)
+        .map_err(PyValueError::new_err)
 }
 
 #[pymodule]
-fn typeset(_py: Python, typeset_module: &Bound<'_, PyModule>) -> PyResult<()> {
-    pyo3_log::init();
-    typeset_module.add_class::<Layout>()?;
-    typeset_module.add_class::<Document>()?;
-    let _null = wrap_pyfunction!(null, typeset_module)?;
-    let _text = wrap_pyfunction!(text, typeset_module)?;
-    let _fix = wrap_pyfunction!(fix, typeset_module)?;
-    let _grp = wrap_pyfunction!(grp, typeset_module)?;
-    let _seq = wrap_pyfunction!(seq, typeset_module)?;
-    let _nest = wrap_pyfunction!(nest, typeset_module)?;
-    let _pack = wrap_pyfunction!(pack, typeset_module)?;
-    let _line = wrap_pyfunction!(line, typeset_module)?;
-    let _comp = wrap_pyfunction!(comp, typeset_module)?;
-    let _print = wrap_pyfunction!(print, typeset_module)?;
-    let _compile = wrap_pyfunction!(compile, typeset_module)?;
-    let _render = wrap_pyfunction!(render, typeset_module)?;
-    let _parse = wrap_pyfunction!(parse, typeset_module)?;
-    typeset_module.add_function(_null)?;
-    typeset_module.add_function(_text)?;
-    typeset_module.add_function(_fix)?;
-    typeset_module.add_function(_grp)?;
-    typeset_module.add_function(_seq)?;
-    typeset_module.add_function(_nest)?;
-    typeset_module.add_function(_pack)?;
-    typeset_module.add_function(_line)?;
-    typeset_module.add_function(_comp)?;
-    typeset_module.add_function(_print)?;
-    typeset_module.add_function(_compile)?;
-    typeset_module.add_function(_render)?;
-    typeset_module.add_function(_parse)?;
+fn typeset(module: &Bound<'_, PyModule>) -> PyResult<()> {
+    module.add("__version__", env!("CARGO_PKG_VERSION"))?;
+    module.add_class::<Layout>()?;
+    module.add_class::<Document>()?;
+    module.add_function(wrap_pyfunction!(null, module)?)?;
+    module.add_function(wrap_pyfunction!(text, module)?)?;
+    module.add_function(wrap_pyfunction!(fix, module)?)?;
+    module.add_function(wrap_pyfunction!(grp, module)?)?;
+    module.add_function(wrap_pyfunction!(seq, module)?)?;
+    module.add_function(wrap_pyfunction!(nest, module)?)?;
+    module.add_function(wrap_pyfunction!(pack, module)?)?;
+    module.add_function(wrap_pyfunction!(line, module)?)?;
+    module.add_function(wrap_pyfunction!(pad, module)?)?;
+    module.add_function(wrap_pyfunction!(unpad, module)?)?;
+    module.add_function(wrap_pyfunction!(fix_pad, module)?)?;
+    module.add_function(wrap_pyfunction!(fix_unpad, module)?)?;
+    module.add_function(wrap_pyfunction!(space, module)?)?;
+    module.add_function(wrap_pyfunction!(comma, module)?)?;
+    module.add_function(wrap_pyfunction!(semicolon, module)?)?;
+    module.add_function(wrap_pyfunction!(newline, module)?)?;
+    module.add_function(wrap_pyfunction!(blank_line, module)?)?;
+    module.add_function(wrap_pyfunction!(join_with, module)?)?;
+    module.add_function(wrap_pyfunction!(join_with_spaces, module)?)?;
+    module.add_function(wrap_pyfunction!(join_with_commas, module)?)?;
+    module.add_function(wrap_pyfunction!(join_with_lines, module)?)?;
+    module.add_function(wrap_pyfunction!(parens, module)?)?;
+    module.add_function(wrap_pyfunction!(brackets, module)?)?;
+    module.add_function(wrap_pyfunction!(braces, module)?)?;
+    module.add_function(wrap_pyfunction!(compile, module)?)?;
+    module.add_function(wrap_pyfunction!(render, module)?)?;
+    module.add_function(wrap_pyfunction!(format_layout, module)?)?;
+    module.add_function(wrap_pyfunction!(parse, module)?)?;
     Ok(())
 }
