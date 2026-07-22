@@ -4,7 +4,6 @@ pest_derive = "2.8.7"
 pyo3 = "0.29.0"
 typeset = "4.0.0"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 [lib]
 # rlib in addition to cdylib so `cargo test` can link the unit tests
 crate-type = ["cdylib", "rlib"]
@@ -16,9 +15,9 @@ name = "typeset"
 authors = ["Soren Norbaek <sorennorbaek@gmail.com>"]
 categories = ["compilers", "template-engine"]
 description = "A DSL for defining source code pretty printers"
-documentation = "https://docs.rs/typeset/latest/typeset/"
+documentation = "https://github.com/soren-n/typeset-py"
 edition = "2024"
-homepage = "https://docs.rs/typeset/latest/typeset/"
+homepage = "https://github.com/soren-n/typeset-py"
 keywords = ["dsl", "pretty", "printer"]
 license-file = "LICENSE"
 name = "typeset-py"
