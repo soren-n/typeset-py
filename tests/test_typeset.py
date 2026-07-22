@@ -64,6 +64,11 @@ def test_missing_fragment_raises_value_error() -> None:
         typeset.parse("{0}")
 
 
+def test_huge_fragment_index_raises_value_error() -> None:
+    with pytest.raises(ValueError):
+        typeset.parse("{99999999999999999999999}")
+
+
 def test_non_layout_fragment_raises_type_error() -> None:
     with pytest.raises(TypeError):
         typeset.parse("{0}", "not a layout")  # type: ignore[arg-type]

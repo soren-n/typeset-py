@@ -55,9 +55,11 @@ pub fn parse(input: &str, args: &[Box<Layout>]) -> Result<Box<Layout>, String> {
         PRATT_PARSER
             .map_primary(|primary| match primary.as_rule() {
                 Rule::null => Ok(Box::new(Syntax::Null)),
-                Rule::index => Ok(Box::new(Syntax::Index(
-                    primary.as_str().parse::<usize>().unwrap(),
-                ))),
+                Rule::index => primary
+                    .as_str()
+                    .parse::<usize>()
+                    .map(|index| Box::new(Syntax::Index(index)))
+                    .map_err(|_| format!("fragment index {} is out of range", primary.as_str())),
                 Rule::text => primary
                     .into_inner()
                     .try_fold(String::new(), |mut result, part| match part.as_rule() {
@@ -125,14 +127,12 @@ pub fn parse(input: &str, args: &[Box<Layout>]) -> Result<Box<Layout>, String> {
     fn _interp_syntax(syntax: Box<Syntax>, args: &[Box<Layout>]) -> Result<Box<Layout>, String> {
         match *syntax {
             Syntax::Null => Ok(null()),
-            Syntax::Index(index) => {
-                let length = args.len();
-                if index < length {
-                    Ok(args[index].clone())
-                } else {
-                    Err(format!("invalid index {:?}", index))
-                }
-            }
+            Syntax::Index(index) => args.get(index).cloned().ok_or_else(|| {
+                format!(
+                    "fragment index {index} is out of range; {} fragment(s) given",
+                    args.len()
+                )
+            }),
             Syntax::Text(data) => Ok(text(data)),
             Syntax::Fix(syntax1) => {
                 let layout = _interp_syntax(syntax1, args);
@@ -351,6 +351,32 @@ mod tests {
         assert_eq!(
             format!("{:?}", parse("{0} & {0}", &args).unwrap()),
             r#"Comp(Text("x"), Text("x"), Attr { pad: Unpadded, brk: Breakable })"#
+        );
+    }
+
+    #[test]
+    fn out_of_range_index_is_an_error() {
+        let args = [text("x")];
+        let error = parse("{1}", &args).unwrap_err();
+        assert_eq!(
+            error,
+            "fragment index 1 is out of range; 1 fragment(s) given"
+        );
+    }
+
+    #[test]
+    fn index_without_fragments_is_an_error() {
+        assert_eq!(
+            parse_err("{0}"),
+            "fragment index 0 is out of range; 0 fragment(s) given"
+        );
+    }
+
+    #[test]
+    fn index_beyond_usize_is_an_error_not_a_panic() {
+        assert_eq!(
+            parse_err("{99999999999999999999999}"),
+            "fragment index 99999999999999999999999 is out of range"
         );
     }
 
