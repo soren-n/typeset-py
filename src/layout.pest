@@ -44,7 +44,7 @@ text = { (raw_string | escaped_string)* }
 string = _{ "\"" ~ text ~ "\"" }
 
 primary = _{ null | variable | string | "(" ~ expr ~ ")" }
-atom = _{ unary_op? ~ primary }
+atom = _{ unary_op* ~ primary }
 expr = { atom ~ (binary_op ~ atom)* }
 
 layout = _{ SOI ~ expr ~ EOI }

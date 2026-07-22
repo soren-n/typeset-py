@@ -312,6 +312,15 @@ mod tests {
     }
 
     #[test]
+    fn stacked_unary_operators() {
+        assert_eq!(parsed(r#"fix grp "a""#), r#"Fix(Grp(Text("a")))"#);
+        assert_eq!(
+            parsed(r#"nest seq grp "a""#),
+            r#"Nest(Seq(Grp(Text("a"))))"#
+        );
+    }
+
+    #[test]
     fn unary_operator_over_parenthesized_expression() {
         assert_eq!(
             parsed(r#"fix ("a" + "b")"#),
