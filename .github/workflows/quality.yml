@@ -39,17 +39,20 @@ jobs:
       - name: Run tests
         run: cargo test --verbose
 
+      - name: Install cargo-audit
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-audit
+
       - name: Check for security vulnerabilities
-        run: |
-          cargo install cargo-audit || true
-          cargo audit
+        run: cargo audit
 
   python-quality:
     name: Python Quality Checks
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ["3.9", "3.10", "3.11", "3.12", "3.13"]
+        python-version: ["3.10", "3.11", "3.12", "3.13", "3.14"]
     steps:
       - uses: actions/checkout@v7
 
@@ -103,9 +106,7 @@ jobs:
           components: rustfmt, clippy
 
       - name: Install tools
-        run: |
-          uv tool install pre-commit
-          cargo install cargo-audit || true
+        run: uv tool install pre-commit
 
       - name: Run pre-commit
         run: pre-commit run --all-files

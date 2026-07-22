@@ -20,7 +20,7 @@ maintainers = [
 ]
 name = "typeset-soren-n"
 readme = "README.md"
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 
 [project.urls]
 documentation = "https://github.com/soren-n/typeset-py"
