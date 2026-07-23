@@ -174,7 +174,7 @@ checksum = "ce027ba8914629d202f2f7a01b530e06ccd6613cb2ca73a3ad0e70194591969e"
 
 [[package]]
 name = "typeset-py"
-version = "3.0.0"
+version = "3.0.1"
 dependencies = [
  "pest",
  "pest_derive",
