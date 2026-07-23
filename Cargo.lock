@@ -3,12 +3,6 @@
 version = 4
 
 [[package]]
-name = "bumpalo"
-version = "3.20.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "72f5acc6cb2ba439de613abc23857ec3d78374d8ed5ac84e9d11336e87da8649"
-
-[[package]]
 name = "heck"
 version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -174,12 +168,9 @@ checksum = "adb6935a6f5c20170eeceb1a3835a49e12e19d792f6dd344ccc76a985ca5a6ca"
 
 [[package]]
 name = "typeset"
-version = "4.0.0"
+version = "4.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bd9c43d37bd953d9170f33251bfdd4a0dfe2063d41258bbfe20ed869c2aca0e2"
-dependencies = [
- "bumpalo",
-]
+checksum = "ce027ba8914629d202f2f7a01b530e06ccd6613cb2ca73a3ad0e70194591969e"
 
 [[package]]
 name = "typeset-py"

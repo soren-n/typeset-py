@@ -48,7 +48,8 @@ PYO3_PYTHON=$PWD/.venv/bin/python cargo test
 
 ## Dependencies
 
-- **Rust**: pyo3 0.29, typeset 4.0, pest 2.8.7; edition 2024, MSRV 1.89
+- **Rust**: pyo3 0.29 (`abi3-py310`: one stable-ABI wheel per platform covers
+  CPython 3.10+), typeset 4.1, pest 2.8.7; edition 2024, MSRV 1.89
 - **Python**: >=3.10, maturin >=1.9 for building
 
 ## DSL Quick Reference

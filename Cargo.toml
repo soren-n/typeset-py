@@ -1,8 +1,11 @@
 [dependencies]
 pest = "2.8.7"
 pest_derive = "2.8.7"
-pyo3 = "0.29.0"
-typeset = "4.0.0"
+# abi3-py310: one stable-ABI wheel covers CPython 3.10+. extension-module is
+# kept out of here (set via [tool.maturin] features) so `cargo test` can link
+# libpython.
+pyo3 = { version = "0.29.0", features = ["abi3-py310"] }
+typeset = "4.1.0"
 
 [lib]
 # rlib in addition to cdylib so `cargo test` can link the unit tests
@@ -26,3 +29,10 @@ repository = "https://github.com/soren-n/typeset-py"
 # matches the MSRV of the typeset dependency
 rust-version = "1.89"
 version = "3.0.0"
+
+[profile.release]
+# LTO + a single codegen unit let the linker inline the typeset crate into the
+# extension. Build time is irrelevant for a release artifact. (maturin already
+# strips symbols by default, so no `strip` here.)
+codegen-units = 1
+lto = true
