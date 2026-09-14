@@ -4,7 +4,7 @@ pest_derive = "2.8.7"
 # abi3-py310: one stable-ABI wheel covers CPython 3.10+. extension-module is
 # kept out of here (set via [tool.maturin] features) so `cargo test` can link
 # libpython.
-pyo3 = { version = "0.29.0", features = ["abi3-py310"] }
+pyo3 = {version = "0.29.0", features = ["abi3-py310"]}
 typeset = "4.1.0"
 
 [lib]

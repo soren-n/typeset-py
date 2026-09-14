@@ -33,7 +33,7 @@ repos:
 
   # Python type checking for .pyi files
   - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v2.3.0
+    rev: v2.3.1
     hooks:
       - id: mypy
         name: Python type checking (mypy)
@@ -51,7 +51,7 @@ repos:
 
   # Spell checking for documentation
   - repo: https://github.com/crate-ci/typos
-    rev: v1.48.0
+    rev: v1.50.1
     hooks:
       - id: typos
         name: Spell checking
