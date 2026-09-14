@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-typeset-py is a Rust-based Python extension module that provides a DSL for defining source code pretty printers. It uses PyO3 to bind the upstream [typeset](https://docs.rs/typeset) crate; layout semantics live upstream, this repository owns the Python surface and the runtime DSL parser.
+typeset-py is a Rust-based Python extension module that provides a DSL for defining source code pretty printers. It uses PyO3 to bind the upstream [typeset](https://docs.rs/typeset) crate; layout semantics and the DSL grammar live upstream, this repository owns the Python surface and the DSL front end that splices Python fragments into a script.
 
 ## Quick Start
 
@@ -41,15 +41,14 @@ PYO3_PYTHON=$PWD/.venv/bin/python cargo test
 ## Key Files
 
 - `src/lib.rs` - PyO3 bindings and Python API
-- `src/parser.rs` - DSL parser (Pest + Pratt) and its unit tests
-- `src/layout.pest` - grammar definition for DSL syntax
+- `src/parser.rs` - DSL front end (tokenizer over upstream's token parser, with `{i}` fragments) and its unit tests
 - `typeset.pyi` - Python type stubs; keyword names must match Rust parameter names
 - `tests/test_typeset.py` - end-to-end tests, doubling as API examples
 
 ## Dependencies
 
 - **Rust**: pyo3 0.29 (`abi3-py310`: one stable-ABI wheel per platform covers
-  CPython 3.10+), typeset 4.1, pest 2.8.7; edition 2024, MSRV 1.89
+  CPython 3.10+), typeset 5.0; edition 2024, MSRV 1.96 (matches typeset)
 - **Python**: >=3.10, maturin >=1.9 for building
 
 ## DSL Quick Reference
@@ -64,8 +63,10 @@ parse('nest {0}', content)     # Nested indentation
 ```
 
 The same compositions exist as Python operators on Layout: `+` (padded), `&` (unpadded), `@` (line break).
+Compile and render are methods: `layout.compile().render(tab, width)`.
 
 ## Conventions
 
 - No backwards-compatibility shims and no fallback code paths; unreachable states are `unreachable!()`, user errors are typed Python exceptions.
-- Releases are cut by semantic-release from conventional commits; the version's single source of truth is `Cargo.toml` (exported as `typeset.__version__`).
+- The Python API mirrors the upstream constructors one to one; nothing upstream removed survives here as a shim.
+- Releases are cut by semantic-release from conventional commits; release notes live on GitHub Releases (there is no CHANGELOG.md). The version's single source of truth is `Cargo.toml` (exported as `typeset.__version__`).

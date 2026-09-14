@@ -17,12 +17,38 @@ class Layout:
     def __matmul__(self, other: Layout) -> Layout:
         """Forced linebreak composition, equivalent to line(self, other)."""
 
+    def __repr__(self) -> str:
+        """The layout in the DSL; parse() reads it back."""
+
+    def compile(self) -> Document:
+        """
+        Compile the layout into a document.
+
+        Returns:
+            The compiled document.
+        """
+
 class Document:
     """
     A compiled, render-ready document.
 
-    Instances are created via the compile function.
+    Instances are created via Layout.compile.
     """
+
+    def __repr__(self) -> str:
+        """The document in the DSL: its normal form, which compiles to itself."""
+
+    def render(self, tab: int, width: int) -> str:
+        """
+        Render the document to a string.
+
+        Args:
+            tab: the number of spaces per indentation level.
+            width: the target line width for breaking decisions.
+
+        Returns:
+            The rendered output.
+        """
 
 def null() -> Layout:
     """
@@ -166,62 +192,10 @@ def fix_unpad(left: Layout, right: Layout) -> Layout:
         The composed layout.
     """
 
-def space() -> Layout:
-    """
-    A single space; equivalent to text(" ").
-
-    Returns:
-        A space layout.
-    """
-
-def comma() -> Layout:
-    """
-    A comma; equivalent to text(",").
-
-    Returns:
-        A comma layout.
-    """
-
-def semicolon() -> Layout:
-    """
-    A semicolon; equivalent to text(";").
-
-    Returns:
-        A semicolon layout.
-    """
-
-def newline() -> Layout:
-    """
-    A linebreak with no content on either side.
-
-    Returns:
-        A linebreak layout.
-    """
-
-def blank_line() -> Layout:
-    """
-    Two consecutive linebreaks, producing one blank line.
-
-    Returns:
-        A blank-line layout.
-    """
-
-def join_with(layouts: list[Layout], separator: Layout) -> Layout:
-    """
-    Join layouts with a separator between each pair, using unpadded
-    compositions (the separator supplies its own spacing).
-
-    Args:
-        layouts: the layouts to join; an empty list yields null().
-        separator: the separator layout.
-
-    Returns:
-        The joined layout.
-    """
-
 def join_with_spaces(layouts: list[Layout]) -> Layout:
     """
-    Join layouts with single spaces.
+    Join layouts with padded compositions: a space between neighbours
+    that share a line, nothing where a line breaks.
 
     Args:
         layouts: the layouts to join; an empty list yields null().
@@ -232,7 +206,8 @@ def join_with_spaces(layouts: list[Layout]) -> Layout:
 
 def join_with_commas(layouts: list[Layout]) -> Layout:
     """
-    Join layouts with ", " separators.
+    Join layouts as a comma-separated list: each comma is fixed to the
+    item before it, and the composition after it is padded and breakable.
 
     Args:
         layouts: the layouts to join; an empty list yields null().
@@ -250,79 +225,6 @@ def join_with_lines(layouts: list[Layout]) -> Layout:
 
     Returns:
         The joined layout.
-    """
-
-def parens(layout: Layout) -> Layout:
-    """
-    Wrap a layout in parentheses with no introduced spacing.
-
-    Args:
-        layout: the layout to wrap.
-
-    Returns:
-        The wrapped layout.
-    """
-
-def brackets(layout: Layout) -> Layout:
-    """
-    Wrap a layout in square brackets with no introduced spacing.
-
-    Args:
-        layout: the layout to wrap.
-
-    Returns:
-        The wrapped layout.
-    """
-
-def braces(layout: Layout) -> Layout:
-    """
-    Wrap a layout in curly braces with no introduced spacing.
-
-    Args:
-        layout: the layout to wrap.
-
-    Returns:
-        The wrapped layout.
-    """
-
-def compile(layout: Layout) -> Document:
-    """
-    Compile a layout into a document.
-
-    Args:
-        layout: the layout to compile.
-
-    Returns:
-        The compiled document.
-    """
-
-def render(document: Document, tab: int, width: int) -> str:
-    """
-    Render a document to a string.
-
-    Args:
-        document: the document to render.
-        tab: the number of spaces per indentation level.
-        width: the target line width for breaking decisions.
-
-    Returns:
-        The rendered output.
-    """
-
-def format_layout(layout: Layout, tab: int, width: int) -> str:
-    """
-    Compile and render a layout in one step.
-
-    To format the same layout repeatedly at different widths, prefer
-    compile once and render per call.
-
-    Args:
-        layout: the layout to format.
-        tab: the number of spaces per indentation level.
-        width: the target line width for breaking decisions.
-
-    Returns:
-        The rendered output.
     """
 
 def parse(input: str, *fragments: Layout) -> Layout:

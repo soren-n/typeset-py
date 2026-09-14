@@ -16,7 +16,7 @@ The package installs the module `typeset`:
 import typeset
 
 layout = typeset.text('hello') + typeset.text('world')
-print(typeset.render(typeset.compile(layout), 2, 80))
+print(layout.compile().render(2, 80))
 # hello world
 ```
 
@@ -25,7 +25,7 @@ The layout language is designed such that it fits well over a structurally recur
 
 A layout is a tree of text literals composed together with either padded, unpadded compositions or with a line-break. The layout solver will select compositions in a layout and convert them into line-breaks, in order to make the layout fit within a given layout buffer width. It will do this in a greedy way, fitting as many literals on a line as possible. While doing so it will respect the annotated properties that the compositions are constructed under.
 
-The solver being an abstract concept, is concretely implemented via two accompanying functions, a _compiler_ implemented as `compile`, and a _renderer_ implemented as `render`. Where the compiler takes a `Layout` and produces an immutable optimized layout called a `Document`. The renderer takes a `Document` along with arguments for indentation and buffer width, and produces the final text output.
+The solver being an abstract concept, is concretely implemented via two methods: a _compiler_, `Layout.compile`, which produces an immutable optimized layout called a `Document`; and a _renderer_, `Document.render`, which takes arguments for indentation and buffer width and produces the final text output.
 
 ## Composition
 Layouts compose through four families of binary constructors:
@@ -275,51 +275,43 @@ The example above might make it seem trivial, and that infix fixed compositions 
 
 Infix fixed compositions are useful when you need to fix a literal to the beginning or end of some other layout, e.g. separators between items in a sequence or list-like data structure. Without this feature you would again need to use an accumulator variable if you want to fix to the next literal, and probably need continuations if you want to fix to the last literal.
 
-## Convenience constructors
-A set of shorthands for common fragments and idioms:
+## Joins
+Three folds over a list of layouts; an empty list is `null()`:
 
 ```python
-space()                        # text(' ')
-comma()                        # text(',')
-semicolon()                    # text(';')
-newline()                      # a bare linebreak
-blank_line()                   # two linebreaks, i.e. one blank line
-
-join_with(items, separator)    # items joined by separator (unpadded)
-join_with_spaces(items)        # 'a b c'
-join_with_commas(items)        # 'a, b, c'
-join_with_lines(items)         # one item per line
-
-parens(layout)                 # '(layout)'
-brackets(layout)               # '[layout]'
-braces(layout)                 # '{layout}'
+join_with_spaces(items)   # padded compositions: 'a b c', or one per line when broken
+join_with_commas(items)   # each comma fixed to the item before it: 'a, b, c'
+join_with_lines(items)    # forced linebreaks: one item per line
 ```
 
-For example a function call:
+For example a function call whose arguments align under the first when they
+do not fit:
 
 ```python
-call = text('f') & parens(join_with_commas([text('a'), text('b')]))
-# f(a, b)
+args = pack(seq(join_with_commas([text('x'), text('y'), text('z')])))
+call = text('f(') & fix_unpad(args, text(')'))
+document = call.compile()
+document.render(2, 80)  # 'f(x, y, z)'
+document.render(2, 6)   # 'f(x,\n  y,\n  z)'
 ```
+
+A blank line is a linebreak onto the empty layout: `a @ null() @ b`.
 
 ## Compiling the layout
 Your custom layout function (pretty printer) will build a layout, which you then need to compile and render:
 ```python
-document = compile(layout)
-result = render(document, 2, 80)
-print(result)
+document = layout.compile()
+print(document.render(2, 80))
 ```
-I.e. the layout should be given to the compiler, which gives you back a document ready for rendering, which you in turn give to the renderer along with arguments for indentation width and layout buffer width; in the above case indentation width is 2 and the layout buffer width is 80.
+I.e. the layout is compiled into a document ready for rendering, which is then rendered with arguments for indentation width and layout buffer width; in the above case indentation width is 2 and the layout buffer width is 80.
 
-The reason for splitting the solver into `compile` and `render`, is in case the result is to be displayed in a buffer where the width is variable; i.e. you will not need to re-compile the layout between renderings using varying buffer width.
-
-For one-shot formatting there is also `format_layout(layout, 2, 80)`, which
-compiles and renders in a single call.
+The reason for splitting the solver into `compile` and `render`, is in case the result is to be displayed in a buffer where the width is variable; i.e. you will not need to re-compile the layout between renderings using varying buffer width. For one-shot formatting, `layout.compile().render(2, 80)` is the one-shot form.
 
 ## DSL and parsing
-Additionally a small DSL has been defined, and a parser implemented, which allow you to write your layouts more succinctly (versus spelling out the full layout tree with the given constructors, which we've so far been doing throughout in this introduction!):
+Additionally the typeset crate defines a small DSL, which allows you to write your layouts more succinctly (versus spelling out the full layout tree with the given constructors, which we've so far been doing throughout in this introduction!). `parse` reads it, with `{i}` standing for the i-th extra argument, and `repr` of a layout prints it:
 ```python
 layout = parse('{0} @ null @ {1}', fragment1, fragment2)
+repr(parse('nest ("a" + "b")'))  # 'nest ("a" + "b")'
 ```
 
 The full grammar is as such:
@@ -340,9 +332,9 @@ u + v     (Padded composition of layouts u and v)
 u !+ v    (Infix fixed padded composition of layouts u and v)
 ```
 
-Unary constructors stack (`fix grp u`) and bind tighter than the binary
-operators; all binary operators share one precedence level and associate to
-the right; parentheses group. See
+A unary constructor takes one primary and binds tighter than the binary
+operators (parenthesize to stack them: `fix (grp u)`); all binary operators
+share one precedence level and associate to the right; parentheses group. See
 [docs/context/dsl-grammar.md](docs/context/dsl-grammar.md) for the full
 specification.
 

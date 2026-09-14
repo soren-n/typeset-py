@@ -4,7 +4,7 @@ import typeset
 
 
 def render(layout: typeset.Layout, tab: int = 2, width: int = 80) -> str:
-    return typeset.render(typeset.compile(layout), tab, width)
+    return layout.compile().render(tab, width)
 
 
 def test_text_renders_verbatim() -> None:
@@ -55,12 +55,12 @@ def test_fix_prevents_breaking() -> None:
 
 
 def test_parse_error_raises_value_error() -> None:
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="unterminated string at byte 0"):
         typeset.parse('"unterminated')
 
 
 def test_missing_fragment_raises_value_error() -> None:
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="fragment index 0 is out of range"):
         typeset.parse("{0}")
 
 
@@ -74,12 +74,15 @@ def test_non_layout_fragment_raises_type_error() -> None:
         typeset.parse("{0}", "not a layout")  # type: ignore[arg-type]
 
 
-def test_layout_repr() -> None:
-    assert repr(typeset.text("x")) == 'Text("x")'
+def test_layout_repr_is_the_dsl() -> None:
+    layout = typeset.parse('nest ("a" + "b") @ "c"')
+    assert repr(layout) == 'nest ("a" + "b") @ "c"'
+    assert render(typeset.parse(repr(layout))) == render(layout)
 
 
-def test_document_repr() -> None:
-    assert "x" in repr(typeset.compile(typeset.text("x")))
+def test_document_repr_is_the_dsl() -> None:
+    document = typeset.parse('"a" + "b"').compile()
+    assert render(typeset.parse(repr(document))) == "a b"
 
 
 def test_version_matches_package_metadata() -> None:
@@ -118,35 +121,21 @@ def test_fix_pad_never_breaks_at_the_seam() -> None:
     assert render(layout, width=2) == "foo bar"
 
 
-def test_space_comma_semicolon() -> None:
-    assert render(typeset.space()) == " "
-    assert render(typeset.comma()) == ","
-    assert render(typeset.semicolon()) == ";"
-
-
-def test_newline_and_blank_line() -> None:
+def test_blank_line_is_a_line_onto_null() -> None:
     a, b = typeset.text("a"), typeset.text("b")
-    assert render(a & typeset.newline() & b) == "a\nb"
-    assert render(a & typeset.blank_line() & b) == "a\n\nb"
-
-
-def test_join_with() -> None:
-    items = [typeset.text("a"), typeset.text("b")]
-    assert render(typeset.join_with(items, typeset.text("|"))) == "a|b"
-
-
-def test_join_with_empty_list_is_null() -> None:
-    assert render(typeset.join_with([], typeset.comma())) == ""
+    assert render(a @ typeset.null() @ b) == "a\n\nb"
 
 
 def test_join_with_spaces() -> None:
     items = [typeset.text("a"), typeset.text("b")]
     assert render(typeset.join_with_spaces(items)) == "a b"
+    assert render(typeset.join_with_spaces(items), width=1) == "a\nb"
 
 
 def test_join_with_commas() -> None:
     items = [typeset.text("a"), typeset.text("b"), typeset.text("c")]
     assert render(typeset.join_with_commas(items)) == "a, b, c"
+    assert render(typeset.join_with_commas(items), width=3) == "a,\nb,\nc"
 
 
 def test_join_with_lines() -> None:
@@ -154,33 +143,39 @@ def test_join_with_lines() -> None:
     assert render(typeset.join_with_lines(items)) == "a;\nb;"
 
 
-def test_wrappers() -> None:
-    inner = typeset.text("x")
-    assert render(typeset.parens(inner)) == "(x)"
-    assert render(typeset.brackets(inner)) == "[x]"
-    assert render(typeset.braces(inner)) == "{x}"
+def test_join_of_empty_list_is_null() -> None:
+    assert render(typeset.join_with_commas([])) == ""
 
 
-def test_format_layout_matches_compile_render() -> None:
-    layout = typeset.parse('"foo" + nest ("bar" + "baz")')
-    assert typeset.format_layout(layout, 2, 7) == render(layout, tab=2, width=7)
+def test_document_renders_at_several_widths() -> None:
+    args = typeset.pack(typeset.seq(typeset.join_with_commas(
+        [typeset.text("x"), typeset.text("y"), typeset.text("z")]
+    )))
+    call = typeset.text("f(") & typeset.fix_unpad(args, typeset.text(")"))
+    document = call.compile()
+    assert document.render(2, 80) == "f(x, y, z)"
+    assert document.render(2, 6) == "f(x,\n  y,\n  z)"
 
 
 def test_layouts_are_reusable() -> None:
-    separator = typeset.comma() & typeset.space()
-    first = typeset.join_with([typeset.text("a"), typeset.text("b")], separator)
-    second = typeset.join_with([typeset.text("c"), typeset.text("d")], separator)
+    separator = typeset.text(",")
+    first = typeset.fix_unpad(typeset.text("a"), separator) + typeset.text("b")
+    second = typeset.fix_unpad(typeset.text("c"), separator) + typeset.text("d")
     assert render(first) == "a, b"
     assert render(second) == "c, d"
 
 
 def test_keyword_arguments_match_stub_names() -> None:
-    document = typeset.compile(typeset.pad(left=typeset.text("a"), right=typeset.text("b")))
-    assert typeset.render(document=document, tab=2, width=80) == "a b"
-    layout = typeset.parse(input='"x"')
-    assert typeset.format_layout(layout=layout, tab=2, width=80) == "x"
+    layout = typeset.pad(left=typeset.text("a"), right=typeset.text("b"))
+    assert layout.compile().render(tab=2, width=80) == "a b"
+    assert render(typeset.parse(input='"x"')) == "x"
+    assert render(typeset.join_with_spaces(layouts=[typeset.text("y")])) == "y"
 
 
-def test_boolean_comp_and_print_are_gone() -> None:
-    assert not hasattr(typeset, "comp")
-    assert not hasattr(typeset, "print")
+def test_removed_helpers_are_gone() -> None:
+    for name in (
+        "comp", "print", "compile", "render", "format_layout", "join_with",
+        "space", "comma", "semicolon", "newline", "blank_line",
+        "parens", "brackets", "braces",
+    ):
+        assert not hasattr(typeset, name)

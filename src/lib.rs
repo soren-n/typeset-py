@@ -10,39 +10,30 @@ mod parser;
 
 /// A deferred layout node.
 ///
-/// Composition does not build the native tree eagerly: it records the child
-/// nodes and the native constructor to apply. Because Python `Layout` objects
-/// are shared and immutable, eager construction would have to deep-clone every
-/// operand's subtree on each `+`/`&`/`@`/`pad(..)`/... call, making expression
-/// building quadratic. Storing `Arc` children instead makes every composition
-/// O(1); the native tree is materialized once, on demand, at `compile`,
-/// `format_layout`, or `repr`.
+/// Composition does not build the native layout eagerly: it records the child
+/// nodes and the native constructor to apply. The native constructors take
+/// their operands by value, and Python `Layout` objects are shared and
+/// immutable, so eager construction would have to clone every operand's
+/// arena on each `+`/`&`/`@`/`pad(..)`/... call, making expression building
+/// quadratic. Storing `Arc` children instead makes every composition O(1);
+/// the native layout is materialized once, on demand, at `compile` or `repr`.
 enum Node {
-    /// A leaf whose native form is already built: `text`, `null`, the nullary
-    /// helpers, and whole trees returned by `parse`.
-    Leaf(Box<native::Layout>),
-    Unary(fn(Box<native::Layout>) -> Box<native::Layout>, Arc<Node>),
+    /// A leaf whose native form is already built: `text`, `null`, and whole
+    /// trees returned by `parse`.
+    Leaf(native::Layout),
+    Unary(fn(native::Layout) -> native::Layout, Arc<Node>),
     Binary(
-        fn(Box<native::Layout>, Box<native::Layout>) -> Box<native::Layout>,
+        fn(native::Layout, native::Layout) -> native::Layout,
         Arc<Node>,
         Arc<Node>,
     ),
-    Join(
-        fn(Vec<Box<native::Layout>>) -> Box<native::Layout>,
-        Vec<Arc<Node>>,
-    ),
-    JoinWith(
-        fn(Vec<Box<native::Layout>>, Box<native::Layout>) -> Box<native::Layout>,
-        Vec<Arc<Node>>,
-        Arc<Node>,
-    ),
+    Join(fn(Vec<native::Layout>) -> native::Layout, Vec<Arc<Node>>),
 }
 
 impl Node {
-    /// Build the native layout tree this node describes. Called once per
-    /// `compile`/`render`/`repr`; the recursion depth matches the tree depth,
-    /// the same shape the native compiler already walks.
-    fn materialize(&self) -> Box<native::Layout> {
+    /// Build the native layout this node describes. Called once per
+    /// `compile`/`repr`; the recursion depth matches the tree depth.
+    fn materialize(&self) -> native::Layout {
         match self {
             Node::Leaf(layout) => layout.clone(),
             Node::Unary(build, child) => build(child.materialize()),
@@ -50,10 +41,6 @@ impl Node {
             Node::Join(build, children) => {
                 build(children.iter().map(|child| child.materialize()).collect())
             }
-            Node::JoinWith(build, children, separator) => build(
-                children.iter().map(|child| child.materialize()).collect(),
-                separator.materialize(),
-            ),
         }
     }
 }
@@ -71,34 +58,39 @@ impl Layout {
         }
     }
 
-    fn leaf(layout: Box<native::Layout>) -> Self {
+    fn leaf(layout: native::Layout) -> Self {
         Layout::new(Node::Leaf(layout))
     }
 
-    fn unary(build: fn(Box<native::Layout>) -> Box<native::Layout>, child: &Layout) -> Self {
+    fn unary(build: fn(native::Layout) -> native::Layout, child: &Layout) -> Self {
         Layout::new(Node::Unary(build, child.node.clone()))
     }
 
     fn binary(
-        build: fn(Box<native::Layout>, Box<native::Layout>) -> Box<native::Layout>,
+        build: fn(native::Layout, native::Layout) -> native::Layout,
         left: &Layout,
         right: &Layout,
     ) -> Self {
         Layout::new(Node::Binary(build, left.node.clone(), right.node.clone()))
     }
-}
 
-fn child_nodes(layouts: &[Bound<'_, Layout>]) -> Vec<Arc<Node>> {
-    layouts
-        .iter()
-        .map(|layout| layout.borrow().node.clone())
-        .collect()
+    fn join(
+        build: fn(Vec<native::Layout>) -> native::Layout,
+        layouts: &[Bound<'_, Layout>],
+    ) -> Self {
+        let children = layouts
+            .iter()
+            .map(|layout| layout.borrow().node.clone())
+            .collect();
+        Layout::new(Node::Join(build, children))
+    }
 }
 
 #[pymethods]
 impl Layout {
+    /// The layout in the DSL; `parse` reads it back.
     fn __repr__(&self) -> String {
-        format!("{:?}", self.node.materialize())
+        self.node.materialize().to_string()
     }
 
     /// `left + right`: padded composition, equivalent to `pad(left, right)`.
@@ -115,18 +107,31 @@ impl Layout {
     fn __matmul__(&self, other: &Layout) -> Layout {
         Layout::binary(native::line, self, other)
     }
+
+    /// Compile the layout into a document.
+    fn compile(&self) -> Document {
+        Document {
+            native: self.node.materialize().compile(),
+        }
+    }
 }
 
 /// A compiled, render-ready document.
 #[pyclass(frozen)]
 struct Document {
-    native: Box<native::Doc>,
+    native: native::Doc,
 }
 
 #[pymethods]
 impl Document {
+    /// The document in the DSL: its normal form, which compiles to itself.
     fn __repr__(&self) -> String {
         format!("{:?}", self.native)
+    }
+
+    /// Render the document at a tab width and a target line width.
+    fn render(&self, tab: usize, width: usize) -> String {
+        self.native.render(tab, width)
     }
 }
 
@@ -191,84 +196,18 @@ fn fix_unpad(left: &Layout, right: &Layout) -> Layout {
 }
 
 #[pyfunction]
-fn space() -> Layout {
-    Layout::leaf(native::space())
-}
-
-#[pyfunction]
-fn comma() -> Layout {
-    Layout::leaf(native::comma())
-}
-
-#[pyfunction]
-fn semicolon() -> Layout {
-    Layout::leaf(native::semicolon())
-}
-
-#[pyfunction]
-fn newline() -> Layout {
-    Layout::leaf(native::newline())
-}
-
-#[pyfunction]
-fn blank_line() -> Layout {
-    Layout::leaf(native::blank_line())
-}
-
-#[pyfunction]
-fn join_with(layouts: Vec<Bound<'_, Layout>>, separator: &Layout) -> Layout {
-    Layout::new(Node::JoinWith(
-        native::join_with,
-        child_nodes(&layouts),
-        separator.node.clone(),
-    ))
-}
-
-#[pyfunction]
 fn join_with_spaces(layouts: Vec<Bound<'_, Layout>>) -> Layout {
-    Layout::new(Node::Join(native::join_with_spaces, child_nodes(&layouts)))
+    Layout::join(native::join_with_spaces, &layouts)
 }
 
 #[pyfunction]
 fn join_with_commas(layouts: Vec<Bound<'_, Layout>>) -> Layout {
-    Layout::new(Node::Join(native::join_with_commas, child_nodes(&layouts)))
+    Layout::join(native::join_with_commas, &layouts)
 }
 
 #[pyfunction]
 fn join_with_lines(layouts: Vec<Bound<'_, Layout>>) -> Layout {
-    Layout::new(Node::Join(native::join_with_lines, child_nodes(&layouts)))
-}
-
-#[pyfunction]
-fn parens(layout: &Layout) -> Layout {
-    Layout::unary(native::parens, layout)
-}
-
-#[pyfunction]
-fn brackets(layout: &Layout) -> Layout {
-    Layout::unary(native::brackets, layout)
-}
-
-#[pyfunction]
-fn braces(layout: &Layout) -> Layout {
-    Layout::unary(native::braces, layout)
-}
-
-#[pyfunction]
-fn compile(layout: &Layout) -> Document {
-    Document {
-        native: native::compile(layout.node.materialize()),
-    }
-}
-
-#[pyfunction]
-fn render(document: &Document, tab: usize, width: usize) -> String {
-    native::render(&document.native, tab, width)
-}
-
-#[pyfunction]
-fn format_layout(layout: &Layout, tab: usize, width: usize) -> String {
-    native::format_layout(layout.node.materialize(), tab, width)
+    Layout::join(native::join_with_lines, &layouts)
 }
 
 #[pyfunction]
@@ -300,21 +239,9 @@ fn typeset(module: &Bound<'_, PyModule>) -> PyResult<()> {
     module.add_function(wrap_pyfunction!(unpad, module)?)?;
     module.add_function(wrap_pyfunction!(fix_pad, module)?)?;
     module.add_function(wrap_pyfunction!(fix_unpad, module)?)?;
-    module.add_function(wrap_pyfunction!(space, module)?)?;
-    module.add_function(wrap_pyfunction!(comma, module)?)?;
-    module.add_function(wrap_pyfunction!(semicolon, module)?)?;
-    module.add_function(wrap_pyfunction!(newline, module)?)?;
-    module.add_function(wrap_pyfunction!(blank_line, module)?)?;
-    module.add_function(wrap_pyfunction!(join_with, module)?)?;
     module.add_function(wrap_pyfunction!(join_with_spaces, module)?)?;
     module.add_function(wrap_pyfunction!(join_with_commas, module)?)?;
     module.add_function(wrap_pyfunction!(join_with_lines, module)?)?;
-    module.add_function(wrap_pyfunction!(parens, module)?)?;
-    module.add_function(wrap_pyfunction!(brackets, module)?)?;
-    module.add_function(wrap_pyfunction!(braces, module)?)?;
-    module.add_function(wrap_pyfunction!(compile, module)?)?;
-    module.add_function(wrap_pyfunction!(render, module)?)?;
-    module.add_function(wrap_pyfunction!(format_layout, module)?)?;
     module.add_function(wrap_pyfunction!(parse, module)?)?;
     Ok(())
 }
