@@ -307,6 +307,8 @@ I.e. the layout is compiled into a document ready for rendering, which is then r
 
 The reason for splitting the solver into `compile` and `render`, is in case the result is to be displayed in a buffer where the width is variable; i.e. you will not need to re-compile the layout between renderings using varying buffer width. For one-shot formatting, `layout.compile().render(2, 80)` is the one-shot form.
 
+No layout is too deep: a chain built by a loop or a `reduce` over a hundred thousand items compiles, prints and frees without touching the native stack, with depth costing heap instead.
+
 ## DSL and parsing
 Additionally the typeset crate defines a small DSL, which allows you to write your layouts more succinctly (versus spelling out the full layout tree with the given constructors, which we've so far been doing throughout in this introduction!). `parse` reads it, with `{i}` standing for the i-th extra argument, and `repr` of a layout prints it:
 ```python
