@@ -41,12 +41,15 @@ repos:
         files: \.pyi$
         args: [--strict, --ignore-missing-imports]
 
-  # TOML formatting
+  # TOML formatting. The style (notably spaces inside inline tables) comes
+  # from toml-sort, which the hook does not pin, so pin it here or CI and a
+  # cached local environment can disagree on what "pretty" is.
   - repo: https://github.com/macisamuele/language-formatters-pre-commit-hooks
     rev: v2.16.0
     hooks:
       - id: pretty-format-toml
         args: [--autofix]
+        additional_dependencies: [toml-sort==0.25.0]
         exclude: Cargo\.lock
 
   # Spell checking for documentation

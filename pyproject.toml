@@ -4,7 +4,7 @@ requires = ["maturin>=1.9,<2.0"]
 
 [project]
 authors = [
-  {name = "Soren Norbaek", email = "sorennorbaek@gmail.com"}
+  { name = "Soren Norbaek", email = "sorennorbaek@gmail.com" }
 ]
 classifiers = [
   "Programming Language :: Rust",
@@ -19,9 +19,9 @@ classifiers = [
 description = "A DSL for defining source code pretty printers"
 dynamic = ["version"]
 keywords = ["dsl", "pretty", "printer"]
-license = {file = "LICENSE"}
+license = { file = "LICENSE" }
 maintainers = [
-  {name = "Soren Norbaek", email = "sorennorbaek@gmail.com"}
+  { name = "Soren Norbaek", email = "sorennorbaek@gmail.com" }
 ]
 name = "typeset-soren-n"
 readme = "README.md"
