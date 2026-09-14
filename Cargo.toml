@@ -26,7 +26,7 @@ readme = "README.md"
 repository = "https://github.com/soren-n/typeset-py"
 # matches the MSRV of the typeset dependency
 rust-version = "1.96"
-version = "3.0.1"
+version = "4.0.0"
 
 [profile.release]
 # LTO + a single codegen unit let the linker inline the typeset crate into the

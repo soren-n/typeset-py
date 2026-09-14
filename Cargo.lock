@@ -126,7 +126,7 @@ checksum = "adcf03295cfe90d7aac3e4bd663f77e6e8e01ce059b29540382fe25f34f3963e"
 
 [[package]]
 name = "typeset-py"
-version = "3.0.1"
+version = "4.0.0"
 dependencies = [
  "pyo3",
  "typeset",
