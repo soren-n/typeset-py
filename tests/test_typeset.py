@@ -179,3 +179,22 @@ def test_removed_helpers_are_gone() -> None:
         "parens", "brackets", "braces",
     ):
         assert not hasattr(typeset, name)
+
+
+def test_deep_layouts_compile_and_free_in_constant_stack() -> None:
+    import functools
+    import operator
+
+    n = 100_000
+    words = [typeset.text(str(i)) for i in range(n)]
+    one_line = " ".join(str(i) for i in range(n))
+    left_deep = functools.reduce(operator.add, words)
+    right_deep = functools.reduce(lambda acc, word: word + acc, reversed(words))
+    assert render(left_deep, width=len(one_line)) == one_line
+    assert render(right_deep, width=len(one_line)) == one_line
+    nested = words[0]
+    for _ in range(n):
+        nested = typeset.nest(nested)
+    assert render(nested) == " " * (2 * n) + "0"
+    assert repr(nested).count("nest (") == n - 1
+    del left_deep, right_deep, nested

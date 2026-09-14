@@ -41,6 +41,7 @@ PYO3_PYTHON=$PWD/.venv/bin/python cargo test
 ## Key Files
 
 - `src/lib.rs` - PyO3 bindings and Python API
+- `src/node.rs` - the deferred layout tree behind `Layout`; iterative materialize and drop
 - `src/parser.rs` - DSL front end (tokenizer over upstream's token parser, with `{i}` fragments) and its unit tests
 - `typeset.pyi` - Python type stubs; keyword names must match Rust parameter names
 - `tests/test_typeset.py` - end-to-end tests, doubling as API examples

@@ -22,18 +22,26 @@ each operand's arena on every `+`/`&`/`pad(..)`/... call — making expression
 building quadratic. Instead, `Layout` wraps an `Arc<Node>` that records the
 child nodes and the upstream constructor to apply. Composition is therefore
 O(1) (an `Arc` bump), and the native `typeset::Layout` is materialized
-exactly once, on demand, at `compile` or `repr`. Materialize recursion
-matches the tree depth.
+exactly once, on demand, at `compile` or `repr`.
+
+Both walks over the deferred tree are iterative, like the upstream
+pipeline: materialize is a post-order walk with an explicit stack, and
+`Node`'s `Drop` hands children to a worklist, unwrapping each `Arc` it
+owned alone. A layout as deep as Python cares to build (a `reduce` over
+a hundred thousand words, say) compiles, prints and frees in constant
+native stack, with depth costing heap.
 
 ## Components
 
 - `src/lib.rs` - the entire Python API: two frozen pyclasses (`Layout`,
   `Document`), one `#[pyfunction]` per upstream constructor, and the module
-  init. `Document` wraps `typeset::Doc`; `Layout` wraps a deferred
-  `Arc<Node>` tree (see [Deferred construction](#deferred-construction)). The
-  only logic beyond conversion is that deferral; each `Node` variant still maps
-  to a single upstream constructor. `repr` of either type is its DSL form,
-  which upstream's `Display`/`Debug` print.
+  init. `Document` wraps `typeset::Doc`; `Layout` wraps an `Arc<Node>`.
+  `repr` of either type is its DSL form, which upstream's `Display`/`Debug`
+  print.
+- `src/node.rs` - the deferred tree (see
+  [Deferred construction](#deferred-construction)): a `Node` is one upstream
+  constructor over its children, with the iterative materialize and drop.
+  Nothing else in the binding is more than conversion.
 - `src/parser.rs` - the runtime DSL front end. Upstream's `FromStr` has no
   variables, so this module tokenizes the script itself (the same tokens
   upstream produces, plus `{i}` as a `Token::Var`) and feeds the hidden
@@ -60,11 +68,12 @@ matches the tree depth.
 
 ## Testing
 
-- `cargo test` runs the front-end unit tests (the crate builds an rlib
-  alongside the cdylib for exactly this purpose; doctests are disabled due
-  to the module/upstream crate name collision). Tree shapes are asserted
-  through the DSL that upstream prints, so a test reads as the script it
-  parsed.
+- `cargo test` runs the front-end and deferred-tree unit tests (the crate
+  builds an rlib alongside the cdylib for exactly this purpose; doctests are
+  disabled due to the module/upstream crate name collision). Tree shapes are
+  asserted through the DSL that upstream prints, so a test reads as the
+  script it parsed. The depth tests run a million levels deep on the test
+  thread's small stack, so any recursion over the tree fails them.
 - `pytest` exercises the built extension end to end; build it first with
   `maturin develop`.
 - On macOS, if `cargo test` fails to link libpython, point pyo3 at the

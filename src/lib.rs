@@ -6,64 +6,30 @@ use pyo3::types::PyTuple;
 
 use ::typeset as native;
 
+mod node;
 mod parser;
 
-/// A deferred layout node.
-///
-/// Composition does not build the native layout eagerly: it records the child
-/// nodes and the native constructor to apply. The native constructors take
-/// their operands by value, and Python `Layout` objects are shared and
-/// immutable, so eager construction would have to clone every operand's
-/// arena on each `+`/`&`/`@`/`pad(..)`/... call, making expression building
-/// quadratic. Storing `Arc` children instead makes every composition O(1);
-/// the native layout is materialized once, on demand, at `compile` or `repr`.
-enum Node {
-    /// A leaf whose native form is already built: `text`, `null`, and whole
-    /// trees returned by `parse`.
-    Leaf(native::Layout),
-    Unary(fn(native::Layout) -> native::Layout, Arc<Node>),
-    Binary(
-        fn(native::Layout, native::Layout) -> native::Layout,
-        Arc<Node>,
-        Arc<Node>,
-    ),
-    Join(fn(Vec<native::Layout>) -> native::Layout, Vec<Arc<Node>>),
-}
-
-impl Node {
-    /// Build the native layout this node describes. Called once per
-    /// `compile`/`repr`; the recursion depth matches the tree depth.
-    fn materialize(&self) -> native::Layout {
-        match self {
-            Node::Leaf(layout) => layout.clone(),
-            Node::Unary(build, child) => build(child.materialize()),
-            Node::Binary(build, left, right) => build(left.materialize(), right.materialize()),
-            Node::Join(build, children) => {
-                build(children.iter().map(|child| child.materialize()).collect())
-            }
-        }
-    }
-}
+use node::Node;
 
 /// An unsolved layout tree; built via the module's constructor functions.
+/// The tree is deferred (see `node`): composition records the constructor
+/// to apply, and the native layout is built at `compile` or `repr`.
 #[pyclass(frozen)]
 struct Layout {
     node: Arc<Node>,
 }
 
 impl Layout {
-    fn new(node: Node) -> Self {
+    fn leaf(layout: native::Layout) -> Self {
         Layout {
-            node: Arc::new(node),
+            node: Node::leaf(layout),
         }
     }
 
-    fn leaf(layout: native::Layout) -> Self {
-        Layout::new(Node::Leaf(layout))
-    }
-
     fn unary(build: fn(native::Layout) -> native::Layout, child: &Layout) -> Self {
-        Layout::new(Node::Unary(build, child.node.clone()))
+        Layout {
+            node: Node::unary(build, child.node.clone()),
+        }
     }
 
     fn binary(
@@ -71,7 +37,9 @@ impl Layout {
         left: &Layout,
         right: &Layout,
     ) -> Self {
-        Layout::new(Node::Binary(build, left.node.clone(), right.node.clone()))
+        Layout {
+            node: Node::binary(build, left.node.clone(), right.node.clone()),
+        }
     }
 
     fn join(
@@ -82,7 +50,9 @@ impl Layout {
             .iter()
             .map(|layout| layout.borrow().node.clone())
             .collect();
-        Layout::new(Node::Join(build, children))
+        Layout {
+            node: Node::join(build, children),
+        }
     }
 }
 
