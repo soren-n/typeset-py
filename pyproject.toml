@@ -8,8 +8,13 @@ authors = [
 ]
 classifiers = [
   "Programming Language :: Rust",
-  "Programming Language :: Python :: Implementation :: CPython",
-  "Programming Language :: Python :: Implementation :: PyPy"
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Programming Language :: Python :: 3.14",
+  "Programming Language :: Python :: Implementation :: CPython"
 ]
 description = "A DSL for defining source code pretty printers"
 dynamic = ["version"]
@@ -38,11 +43,8 @@ testpaths = ["tests"]
 # release so the lockfile never trails the manifest.
 assets = ["Cargo.lock"]
 build_command = "cargo update --workspace && maturin build --release"
-changelog_sections = "feature,fix,breaking,documentation,performance"
 commit_message = "chore(release): bump version to {version}"
 major_on_zero = false
-upload_to_pypi = false
-upload_to_vcs_release = true
 version_toml = ["Cargo.toml:package.version"]
 
 [tool.semantic_release.branches.main]
@@ -50,7 +52,12 @@ match = "main"
 prerelease = false
 
 [tool.semantic_release.commit_parser_options]
-allowed_tags = ["build", "chore", "ci", "docs", "feat", "fix", "perf", "style", "refactor", "test", "breaking"]
+allowed_tags = ["build", "chore", "ci", "docs", "feat", "fix", "perf", "style", "refactor", "test"]
 default_bump_level = 0
 minor_tags = ["feat"]
 patch_tags = ["fix", "perf", "docs"]
+
+# The GitHub Release carries the generated notes; the wheels are published
+# to PyPI by release.yml rather than attached to it.
+[tool.semantic_release.publish]
+upload_to_vcs_release = true

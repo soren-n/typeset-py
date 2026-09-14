@@ -51,7 +51,7 @@ a @ b   # line(a, b)
 Sometimes in a data-structure there can be optional data (e.g. of type 'string option'), which when omitted should not have a layout. To make this case easy to handle, the `null` element of layout composition is available.
 
 ```python
-def layout_option(maybe_string: Optional[str]) -> Layout:
+def layout_option(maybe_string: str | None) -> Layout:
   match maybe_string:
     case None: return null()
     case data: return text(data)
