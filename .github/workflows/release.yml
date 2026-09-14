@@ -54,7 +54,7 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
           # Run semantic-release
-          semantic-release version
+          semantic-release version --no-changelog
 
           # Check if release was created
           if git describe --exact-match --tags HEAD >/dev/null 2>&1; then

@@ -49,9 +49,6 @@ version_toml = ["Cargo.toml:package.version"]
 match = "main"
 prerelease = false
 
-[tool.semantic_release.changelog]
-changelog_file = "CHANGELOG.md"
-
 [tool.semantic_release.commit_parser_options]
 allowed_tags = ["build", "chore", "ci", "docs", "feat", "fix", "perf", "style", "refactor", "test", "breaking"]
 default_bump_level = 0
