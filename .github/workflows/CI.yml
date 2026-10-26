@@ -1,12 +1,9 @@
 # Build wheels for distribution
-# This workflow only runs for tagged releases or manual dispatch
+# Called by release.yml for a release tag, or run by manual dispatch
 # Quality checks are handled by the quality.yml workflow
 name: Build
 
 on:
-  push:
-    tags:
-      - '*'
   workflow_dispatch:
   workflow_call:
     inputs:
