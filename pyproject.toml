@@ -37,27 +37,3 @@ features = ["pyo3/extension-module"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-
-[tool.semantic_release]
-# Cargo.lock is regenerated after the version stamp and committed with the
-# release so the lockfile never trails the manifest.
-assets = ["Cargo.lock"]
-build_command = "cargo update --workspace && maturin build --release"
-commit_message = "chore(release): bump version to {version}"
-major_on_zero = false
-version_toml = ["Cargo.toml:package.version"]
-
-[tool.semantic_release.branches.main]
-match = "main"
-prerelease = false
-
-[tool.semantic_release.commit_parser_options]
-allowed_tags = ["build", "chore", "ci", "docs", "feat", "fix", "perf", "style", "refactor", "test"]
-default_bump_level = 0
-minor_tags = ["feat"]
-patch_tags = ["fix", "perf", "docs"]
-
-# The GitHub Release carries the generated notes; the wheels are published
-# to PyPI by release.yml rather than attached to it.
-[tool.semantic_release.publish]
-upload_to_vcs_release = true

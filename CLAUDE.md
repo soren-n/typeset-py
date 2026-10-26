@@ -48,7 +48,7 @@ PYO3_PYTHON=$PWD/.venv/bin/python cargo test
 
 ## Dependencies
 
-- **Rust**: pyo3 0.29 (`abi3-py310`: one stable-ABI wheel per platform covers
+- **Rust**: pyo3 0.30 (`abi3-py310`: one stable-ABI wheel per platform covers
   CPython 3.10+), typeset 5.0; edition 2024, MSRV 1.96 (matches typeset)
 - **Python**: >=3.10, maturin >=1.9 for building
 
@@ -70,4 +70,21 @@ Compile and render are methods: `layout.compile().render(tab, width)`.
 
 - No backwards-compatibility shims and no fallback code paths; unreachable states are `unreachable!()`, user errors are typed Python exceptions.
 - The Python API mirrors the upstream constructors one to one; nothing upstream removed survives here as a shim.
-- Releases are cut by semantic-release from conventional commits; release notes live on GitHub Releases (there is no CHANGELOG.md). The version's single source of truth is `Cargo.toml` (exported as `typeset.__version__`).
+- Versions are managed by hand. The version's single source of truth is `Cargo.toml` (exported as `typeset.__version__`).
+
+## Releasing
+
+Commit types do not decide versions; the maintainer chooses the bump.
+Record changes under `## Unreleased` in `CHANGELOG.md` as they land.
+To release:
+```bash
+# set version = "X.Y.Z" in Cargo.toml, then refresh the lockfile
+cargo update --workspace
+# rename "## Unreleased" in CHANGELOG.md to "## vX.Y.Z (YYYY-MM-DD)"
+# merge, then tag the merged commit on main
+git tag -a vX.Y.Z -m vX.Y.Z && git push origin vX.Y.Z
+```
+The tag push runs `.github/workflows/release.yml`, which refuses a tag
+that does not match the version or has no changelog entry, then builds
+the wheels (`CI.yml`), publishes them to PyPI and creates the GitHub
+release with that entry as notes.
