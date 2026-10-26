@@ -74,7 +74,8 @@ Compile and render are methods: `layout.compile().render(tab, width)`.
 
 ## Releasing
 
-Commit types do not decide versions; the maintainer chooses the bump.
+Commit messages are free-form and do not decide versions; the maintainer
+chooses the bump.
 Record changes under `## Unreleased` in `CHANGELOG.md` as they land.
 To release:
 ```bash
