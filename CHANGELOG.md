@@ -5,7 +5,7 @@ a release renames that heading to the version and date. Releases up to
 v4.0.0 are described on
 [GitHub Releases](https://github.com/soren-n/typeset-py/releases).
 
-## Unreleased
+## v4.0.1 (2026-10-26)
 
 ### Dependencies
 
